@@ -84,6 +84,7 @@ const fetchRaceBtn = document.getElementById('fetchRaceBtn');
 const fetchOverallBtn = document.getElementById('fetchOverallBtn');
 const openOverlayBtn = document.getElementById('openOverlayBtn');
 const editScoresBtn = document.getElementById('editScoresBtn');
+const copyRankingBtn = document.getElementById('copyRankingBtn');
 const showLastScreenshotBtn = document.getElementById('showLastScreenshotBtn');
 const testConnectionBtn = document.getElementById('testConnectionBtn');
 const checkUpdatesBtn = document.getElementById('checkUpdatesBtn');
@@ -281,6 +282,44 @@ editScoresBtn.addEventListener('click', async () => {
         showStatus(operationStatus, 'error', '得点編集ウィンドウの表示に失敗しました: ' + error.message);
     }
 });
+
+// 順位をコピー
+if (copyRankingBtn) {
+    copyRankingBtn.addEventListener('click', async () => {
+        try {
+            const result = await window.electronAPI.getScores();
+            if (!result.success || !result.scores || result.scores.length === 0) {
+                showStatus(operationStatus, 'info', 'コピーするスコアがありません');
+                return;
+            }
+
+            // スコアが高い順にソート
+            const scores = result.scores.sort((a, b) => b.score - a.score);
+            let textToCopy = "";
+            
+            // 1位のスコアを取得
+            const firstPlaceScore = scores[0].score;
+
+            scores.forEach((team, index) => {
+                const rank = index + 1;
+                let line = `${rank}位 ${team.team}: ${team.score}pts`;
+                
+                // 自チームかつ1位でない場合、1位との差を表示
+                if (team.isCurrentPlayer && rank > 1) {
+                    const diff = team.score - firstPlaceScore;
+                    line += ` (${diff})`;
+                }
+                textToCopy += line + "\n";
+            });
+
+            await navigator.clipboard.writeText(textToCopy);
+            showStatus(operationStatus, 'success', '順位をクリップボードにコピーしました');
+            showSuccessParticles(copyRankingBtn);
+        } catch (error) {
+            showStatus(operationStatus, 'error', 'コピーに失敗しました: ' + error.message);
+        }
+    });
+}
 
 // 最新のスクリーンショットを表示
 showLastScreenshotBtn.addEventListener('click', async () => {

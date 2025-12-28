@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gemisoku-GUI</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             /* Light Theme */
@@ -96,13 +99,18 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
             animation: shimmer 3s infinite;
         }
 
         @keyframes shimmer {
-            0% { left: -100%; }
-            100% { left: 100%; }
+            0% {
+                left: -100%;
+            }
+
+            100% {
+                left: 100%;
+            }
         }
 
         .header h1 {
@@ -234,7 +242,7 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
             transition: all 0.5s;
         }
 
@@ -301,6 +309,7 @@
                 opacity: 0;
                 transform: translateX(-20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateX(0);
@@ -344,7 +353,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .footer {
@@ -384,26 +395,26 @@
             .header h1 {
                 font-size: 2rem;
             }
-            
+
             .container {
                 padding: 20px 16px;
             }
-            
+
             .section {
                 padding: 24px 20px;
                 margin: 16px 0;
             }
-            
+
             .button-grid {
                 grid-template-columns: 1fr;
                 gap: 16px;
             }
-            
+
             .button {
                 min-width: 100%;
                 margin-right: 0;
             }
-            
+
             .theme-toggle {
                 top: 16px;
                 right: 16px;
@@ -414,6 +425,7 @@
 
         /* Accessibility */
         @media (prefers-reduced-motion: reduce) {
+
             *,
             *::before,
             *::after {
@@ -471,12 +483,12 @@
             border-radius: 50%;
         }
 
-        .toggle-switch input:checked + .toggle-slider {
+        .toggle-switch input:checked+.toggle-slider {
             background: var(--accent-blue);
             border-color: var(--accent-blue);
         }
 
-        .toggle-switch input:checked + .toggle-slider:before {
+        .toggle-switch input:checked+.toggle-slider:before {
             transform: translateX(24px);
             background: white;
         }
@@ -509,8 +521,13 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .modal-content {
@@ -529,6 +546,7 @@
                 opacity: 0;
                 transform: translateY(20px) scale(0.95);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0) scale(1);
@@ -544,8 +562,13 @@
         }
 
         @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
         }
 
         @keyframes slideDown {
@@ -553,6 +576,7 @@
                 opacity: 1;
                 transform: translateY(0) scale(1);
             }
+
             to {
                 opacity: 0;
                 transform: translateY(20px) scale(0.95);
@@ -742,7 +766,7 @@
                 top: 16px;
                 left: 16px;
             }
-            
+
             .language-selector select {
                 font-size: 12px;
                 padding: 6px 10px;
@@ -750,6 +774,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="theme-toggle" onclick="toggleTheme()" data-i18n-title="theme.toggle">
         🌓
@@ -783,15 +808,18 @@
                 </div>
                 <div class="form-group">
                     <label for="obsPassword" data-i18n="config.obsPassword">OBS WebSocketパスワード:</label>
-                    <input type="password" id="obsPassword" data-i18n="config.obsPasswordPlaceholder" placeholder="パスワード（設定している場合のみ）">
+                    <input type="password" id="obsPassword" data-i18n="config.obsPasswordPlaceholder"
+                        placeholder="パスワード（設定している場合のみ）">
                 </div>
                 <div class="form-group">
                     <label for="obsSourceName" data-i18n="config.obsSourceName">OBS ソース名:</label>
-                    <input type="text" id="obsSourceName" data-i18n="config.obsSourceNamePlaceholder" placeholder="映像キャプチャデバイス" required>
+                    <input type="text" id="obsSourceName" data-i18n="config.obsSourceNamePlaceholder"
+                        placeholder="映像キャプチャデバイス" required>
                 </div>
                 <div class="form-group">
                     <label for="geminiApiKey" data-i18n="config.geminiApiKey">Gemini API キー:</label>
-                    <input type="password" id="geminiApiKey" data-i18n="config.geminiApiKeyPlaceholder" placeholder="AIzaSy..." required>
+                    <input type="password" id="geminiApiKey" data-i18n="config.geminiApiKeyPlaceholder"
+                        placeholder="AIzaSy..." required>
                 </div>
                 <button type="submit" class="button" data-i18n="config.saveButton">💾 設定を保存</button>
             </form>
@@ -814,6 +842,9 @@
                 <button id="editScoresBtn" class="button secondary" data-i18n="operations.editScores">
                     ⚙️ 得点編集
                 </button>
+                <button id="copyRankingBtn" class="button secondary">
+                    📋 順位をコピー
+                </button>
                 <button id="showLastScreenshotBtn" class="button">
                     🖼️ 最新の画像を表示
                 </button>
@@ -831,7 +862,7 @@
                 </button>
             </div>
             <div id="operationStatus" class="status"></div>
-            
+
             <!-- スコア設定セクション -->
             <div class="overlay-info">
                 <h3 data-i18n="scoreSettings.title">⚙️ スコア設定</h3>
@@ -858,42 +889,49 @@
                             <span class="toggle-slider"></span>
                         </div>
                     </label>
-                    <small data-i18n="overlaySettings.showRemainingRacesHelp">スイッチをオフにすると、オーバーレイで残りレース数が表示されなくなります</small>
+                    <small
+                        data-i18n="overlaySettings.showRemainingRacesHelp">スイッチをオフにすると、オーバーレイで残りレース数が表示されなくなります</small>
                 </div>
-                
+
                 <!-- 色彩設定 -->
                 <div style="margin-top: 24px;">
-                    <h4 style="color: var(--text-primary); margin-bottom: 16px; font-size: 16px; font-weight: 600;">🎨 色彩設定</h4>
-                    
+                    <h4 style="color: var(--text-primary); margin-bottom: 16px; font-size: 16px; font-weight: 600;">🎨
+                        色彩設定</h4>
+
                     <div class="form-group">
                         <label for="scoreEffectColor" data-i18n="overlaySettings.scoreEffectColor">点数変動エフェクト色:</label>
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <input type="color" id="scoreEffectColor" value="#22c55e" style="width: 50px; height: 40px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--score-effect-preview, #22c55e);">
+                            <input type="color" id="scoreEffectColor" value="#22c55e"
+                                style="width: 50px; height: 40px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--score-effect-preview, #22c55e);">
                             <span style="color: var(--text-secondary); font-size: 14px;">点数増加時のフラッシュエフェクト色</span>
                         </div>
-                        <small data-i18n="overlaySettings.scoreEffectColorHelp">チームスコアが増加した時の緑色フラッシュエフェクトの色を変更できます</small>
+                        <small
+                            data-i18n="overlaySettings.scoreEffectColorHelp">チームスコアが増加した時の緑色フラッシュエフェクトの色を変更できます</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="currentPlayerColor" data-i18n="overlaySettings.currentPlayerColor">自チーム表示色:</label>
                         <div style="display: flex; align-items: center; gap: 12px;">
-                            <input type="color" id="currentPlayerColor" value="#fbbf24" style="width: 50px; height: 40px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--current-player-preview, #fbbf24);">
+                            <input type="color" id="currentPlayerColor" value="#fbbf24"
+                                style="width: 50px; height: 40px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; background: var(--current-player-preview, #fbbf24);">
                             <span style="color: var(--text-secondary); font-size: 14px;">自分のチームを示す外枠の色</span>
                         </div>
                         <small data-i18n="overlaySettings.currentPlayerColorHelp">自分のチームを区別するための外枠線の色を変更できます</small>
                     </div>
-                    
+
                     <div style="display: flex; gap: 8px; margin-top: 12px;">
-                        <button id="saveColorsBtn" class="button primary" style="min-width: auto; padding: 8px 16px; font-size: 14px;">
+                        <button id="saveColorsBtn" class="button primary"
+                            style="min-width: auto; padding: 8px 16px; font-size: 14px;">
                             💾 色設定を保存
                         </button>
-                        <button id="resetColorsBtn" class="button secondary" style="min-width: auto; padding: 8px 16px; font-size: 14px;">
+                        <button id="resetColorsBtn" class="button secondary"
+                            style="min-width: auto; padding: 8px 16px; font-size: 14px;">
                             🔄 色をリセット
                         </button>
                     </div>
                 </div>
             </div>
-            
+
             <div class="overlay-info">
                 <h3 data-i18n="usage.title">💡 使用方法</h3>
                 <p data-i18n="usage.steps">
@@ -907,10 +945,12 @@
     </div>
 
     <div class="footer">
-        <p>Gemisoku-GUI <span id="appVersion">v1.0.0</span> | <span data-i18n="footer.madeWith">Made with ❤️ by eighten (eito54)</span></p>
+        <p>Gemisoku-GUI <span id="appVersion">v1.0.0</span> | <span data-i18n="footer.madeWith">Made with ❤️ by eighten
+                (eito54)</span></p>
     </div>
 
     <script src="i18n.js"></script>
     <script src="renderer.js"></script>
 </body>
+
 </html>

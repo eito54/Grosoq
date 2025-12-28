@@ -296,7 +296,7 @@ class EmbeddedServer {
         console.log('Using Gemini API key (first 10 chars):', config.geminiApiKey.substring(0, 10) + '...');
         
         const genAI = new GoogleGenerativeAI(config.geminiApiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const { prompt, imageData } = req.body;
 
@@ -611,7 +611,7 @@ ${existingMappingsText}
         console.log('Using Gemini API key (first 10 chars):', config.geminiApiKey.substring(0, 10) + '...');
         
         const genAI = new GoogleGenerativeAI(config.geminiApiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         // Base64データからGemini用のパートを作成
         function fileToGenerativePart(base64Data) {
