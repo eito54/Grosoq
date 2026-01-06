@@ -42,16 +42,21 @@ export function makeHttpRequest(url: string, options: any = {}): Promise<any> {
 }
 
 export function compareVersions(version1: string, version2: string): number {
-  const v1parts = version1.split('.').map(Number)
-  const v2parts = version2.split('.').map(Number)
+  console.log(`Comparing versions: "${version1}" vs "${version2}"`)
+  const cleanV1 = (version1 || '').replace(/^v/, '')
+  const cleanV2 = (version2 || '').replace(/^v/, '')
+  const v1parts = cleanV1.split('.').map(v => parseInt(v, 10))
+  const v2parts = cleanV2.split('.').map(v => parseInt(v, 10))
   
   const maxLength = Math.max(v1parts.length, v2parts.length)
   while (v1parts.length < maxLength) v1parts.push(0)
   while (v2parts.length < maxLength) v2parts.push(0)
   
   for (let i = 0; i < maxLength; i++) {
-    if (v1parts[i] < v2parts[i]) return -1
-    if (v1parts[i] > v2parts[i]) return 1
+    const p1 = isNaN(v1parts[i]) ? 0 : v1parts[i]
+    const p2 = isNaN(v2parts[i]) ? 0 : v2parts[i]
+    if (p1 < p2) return -1
+    if (p1 > p2) return 1
   }
   return 0
 }

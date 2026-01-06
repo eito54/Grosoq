@@ -14,7 +14,7 @@ let serverPort = 3001
 function createWindow(): void {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    title: 'Grosoku-GUI',
+    title: 'Grosoq',
     width: 900,
     height: 670,
     show: false,
@@ -56,6 +56,14 @@ app.whenReady().then(async () => {
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+  })
+
+  // 常に開発者ツールを開けるように設定（デバッグ中のみ）
+  globalShortcut.register('CommandOrControl+Shift+I', () => {
+    const focusedWindow = BrowserWindow.getFocusedWindow()
+    if (focusedWindow) {
+      focusedWindow.webContents.toggleDevTools()
+    }
   })
 
   // Load config

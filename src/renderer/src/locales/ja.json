@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Grosoku-GUI",
+    "title": "Grosoq",
     "subtitle": "マリオカート8デラックス レース結果自動取得・分析アプリケーション"
   },
   "theme": {
@@ -14,9 +14,8 @@
     "obsPasswordPlaceholder": "パスワード（設定している場合のみ）",
     "obsSourceName": "OBS ソース名:",
     "obsSourceNamePlaceholder": "映像キャプチャデバイス",
-    "geminiApiKey": "Gemini API キー:",
-    "geminiApiKeyPlaceholder": "AIzaSy...",
-    "geminiModel": "使用モデル:",
+    "groqApiKey": "Groq API キー:",
+    "groqApiKeyPlaceholder": "gsk_...",
     "saveButton": "💾 設定を保存",
     "validationError": "OBS設定とGroq APIキーは必須です"
   },

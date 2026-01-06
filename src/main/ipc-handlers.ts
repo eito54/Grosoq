@@ -1,4 +1,5 @@
 import { ipcMain, shell, dialog, app, BrowserWindow } from 'electron'
+import { autoUpdater } from 'electron-updater'
 import { ConfigManager } from './config-manager'
 import { EmbeddedServer } from './server'
 import { ApiManager } from './api-manager'
@@ -13,6 +14,64 @@ export function registerIpcHandlers(
   getServerPort: () => number
 ): void {
   const apiManager = new ApiManager(configManager)
+
+  // Configure auto-updater
+  autoUpdater.autoDownload = false
+  autoUpdater.autoInstallOnAppQuit = true
+  
+  // 署名なしアプリでのアップデートを許可
+  // @ts-ignore
+  autoUpdater.forceDevUpdateConfig = true
+  
+  // アップデート速度向上のための設定
+  autoUpdater.logger = console
+  // キャッシュを有効化し、差分更新（Differential Update）を支援
+  autoUpdater.allowDowngrade = false
+  
+  autoUpdater.on('update-available', (info) => {
+    const mainWindow = getMainWindow()
+    if (mainWindow) {
+      mainWindow.webContents.send('update-available', info)
+    }
+  })
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    const mainWindow = getMainWindow()
+    if (mainWindow) {
+      mainWindow.webContents.send('update-download-progress', progressObj)
+    }
+  })
+
+  autoUpdater.on('update-downloaded', (info) => {
+    const mainWindow = getMainWindow()
+    if (mainWindow) {
+      mainWindow.webContents.send('update-downloaded', info)
+    }
+  })
+
+  autoUpdater.on('error', (err) => {
+    const mainWindow = getMainWindow()
+    if (mainWindow) {
+      console.error('AutoUpdater Error Detailed Log:', err)
+      let errorMessage = '不明なエラー'
+      
+      if (err instanceof Error) {
+        errorMessage = `${err.name}: ${err.message}`
+      } else if (typeof err === 'object' && err !== null) {
+        try {
+          // すべてのプロパティを抽出
+          errorMessage = JSON.stringify(err, Object.getOwnPropertyNames(err))
+        } catch (e) {
+          errorMessage = `Object Error(stringify failed): ${String(err)}`
+        }
+      } else {
+        errorMessage = String(err)
+      }
+      
+      console.log('Main process sending update-error:', errorMessage)
+      mainWindow.webContents.send('update-error', errorMessage)
+    }
+  })
 
   ipcMain.handle('get-config', async () => {
     return await configManager.loadConfig()
@@ -100,23 +159,104 @@ export function registerIpcHandlers(
   })
 
   ipcMain.handle('check-for-updates', async () => {
+    const currentVersion = app.getVersion()
+    console.log('Main process check-for-updates: currentVersion =', currentVersion)
+
     try {
-      const currentVersion = app.getVersion()
-      const latestRelease = await makeHttpRequest('https://api.github.com/repos/eito54/Gemisoku-GUI/releases/latest', {
-        headers: { 'User-Agent': 'Gemisoku-GUI' }
-      })
-      
-      const latestVersion = latestRelease.tag_name.replace('v', '')
-      const hasUpdate = compareVersions(latestVersion, currentVersion) > 0
-      
-      return {
-        hasUpdate,
-        latestVersion,
-        currentVersion,
-        url: latestRelease.html_url
+      if (app.isPackaged) {
+        console.log('App is packaged, attempting autoUpdater.checkForUpdates()')
+        try {
+          const result = await autoUpdater.checkForUpdates()
+          const latestVersion = result?.updateInfo.version || currentVersion
+          
+          console.log('Latest version from autoUpdater:', latestVersion)
+          const hasUpdate = compareVersions(latestVersion, currentVersion) > 0
+
+          return {
+            hasUpdate: hasUpdate,
+            latestVersion: latestVersion,
+            currentVersion: currentVersion,
+            isAutoUpdater: true
+          }
+        } catch (updaterError: any) {
+          console.warn('autoUpdater failed, falling back to GitHub API check:', updaterError.message)
+          // autoUpdater が失敗した（latest.yml がない等）場合のフォールバック
+          const latestRelease = await makeHttpRequest('https://api.github.com/repos/eito54/Gemisoku-GUI/releases/latest', {
+            headers: { 'User-Agent': 'Grosoq' }
+          })
+          
+          if (!latestRelease || !latestRelease.tag_name) {
+            console.error('Fallback check also failed to get latest release info')
+            throw updaterError // もともとのエラーを投げる
+          }
+
+          const latestVersion = latestRelease.tag_name.replace('v', '')
+          console.log('Latest version found via fallback API:', latestVersion)
+          
+          return {
+            hasUpdate: compareVersions(latestVersion, currentVersion) > 0,
+            latestVersion,
+            currentVersion,
+            url: latestRelease.html_url,
+            isAutoUpdater: false
+          }
+        }
+      } else {
+        console.log('App is NOT packaged, using GitHub API mock')
+        const latestRelease = await makeHttpRequest('https://api.github.com/repos/eito54/Gemisoku-GUI/releases/latest', {
+          headers: { 'User-Agent': 'Grosoq' }
+        })
+        
+        if (!latestRelease || !latestRelease.tag_name) {
+          console.error('Failed to fetch latest release from GitHub')
+          throw new Error('最新リリースの取得に失敗しました')
+        }
+
+        const latestVersion = latestRelease.tag_name.replace('v', '')
+        console.log('Latest version from GitHub mock:', latestVersion)
+        const hasUpdate = compareVersions(latestVersion, currentVersion) > 0
+
+        return {
+          hasUpdate: hasUpdate,
+          latestVersion,
+          currentVersion,
+          url: latestRelease.html_url,
+          isAutoUpdater: false
+        }
       }
     } catch (error: any) {
-      return { success: false, error: error.message }
+      console.error('Update check error details:', error)
+      let errorMessage = '不明なエラー'
+      if (typeof error === 'string') errorMessage = error
+      else if (error && error.message) errorMessage = error.message
+      else {
+        try {
+          errorMessage = JSON.stringify(error)
+        } catch (e) {
+          errorMessage = 'オブジェクト形式のエラー'
+        }
+      }
+      return { success: false, error: errorMessage }
+    }
+  })
+
+  ipcMain.handle('start-download-update', async () => {
+    try {
+      if (app.isPackaged) {
+        console.log('Main: Starting downloadUpdate()')
+        await autoUpdater.downloadUpdate()
+        return { success: true }
+      }
+      return { success: false, error: '開発モードではダウンロードできません' }
+    } catch (error: any) {
+      console.error('Download start error:', error)
+      return { success: false, error: error.message || 'ダウンロードの開始に失敗しました' }
+    }
+  })
+
+  ipcMain.handle('quit-and-install', () => {
+    if (app.isPackaged) {
+      autoUpdater.quitAndInstall()
     }
   })
 }

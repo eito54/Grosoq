@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "Grosoku-GUI",
+    "title": "Grosoq",
     "subtitle": "Mario Kart 8 Deluxe Race Result Automatic Acquisition & Analysis Application"
   },
   "theme": {
@@ -14,11 +14,10 @@
     "obsPasswordPlaceholder": "Password (if set)",
     "obsSourceName": "OBS Source Name:",
     "obsSourceNamePlaceholder": "Video Capture Device",
-    "geminiApiKey": "Gemini API Key:",
-    "geminiApiKeyPlaceholder": "AIzaSy...",
-    "geminiModel": "Gemini Model:",
+    "groqApiKey": "Groq API Key:",
+    "groqApiKeyPlaceholder": "gsk_...",
     "saveButton": "Save Settings",
-    "validationError": "OBS IP address, port, source name, and Gemini API key are required"
+    "validationError": "OBS settings and Groq API key are required"
   },
   "operations": {
     "title": "Operations",

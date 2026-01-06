@@ -1,6 +1,6 @@
 {
-  "name": "Gemisoku-GUI",
-  "version": "2.0.1",
+  "name": "Grosoq",
+  "version": "2.5.0",
   "private": true,
   "scripts": {
     "dev": "electron-vite dev",
@@ -43,6 +43,8 @@
     "@electron-toolkit/tsconfig": "^2.0.0",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.3",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.23",
     "electron": "^39.2.7",
@@ -57,11 +59,11 @@
     "express": "^4.21.2"
   },
   "main": "./out/main/index.js",
-  "description": "Gemisoku-GUI - MK8DXレース結果自動取得アプリ",
+  "description": "Grosoq - MK8DXレース結果自動取得アプリ (Powered by Groq)",
   "author": "eito54",
   "build": {
     "appId": "com.gemisoku.gui",
-    "productName": "Gemisoku-GUI",
+    "productName": "Grosoq",
     "directories": {
       "output": "dist-gui"
     },
@@ -87,13 +89,22 @@
     ],
     "win": {
       "target": "nsis",
-      "icon": "assets/logo.jpeg"
+      "icon": "assets/logo.jpeg",
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "publish": [
+        {
+          "provider": "github",
+          "owner": "eito54",
+          "repo": "Gemisoku-GUI"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "differentialPackage": true
     },
     "mac": {
       "target": "dmg",

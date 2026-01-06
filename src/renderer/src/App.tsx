@@ -26,6 +26,7 @@ import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence, animate } from 'framer-motion'
+import bootLogo from './assets/boot-logo.png'
 
 function CountUp({ value, duration = 1 }: { value: number; duration?: number }) {
   const [displayValue, setDisplayValue] = useState(value)
@@ -190,12 +191,6 @@ interface LogEntry {
 function App(): JSX.Element {
   const { t, i18n } = useTranslation()
 
-  const calculateRaceScore = (rank: number | undefined): number => {
-    if (!rank) return 0
-    const scores = [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-    return scores[rank - 1] || 0
-  }
-
   const [config, setConfig] = useState<any>(null)
   
   const isConfigInvalid = !config?.obsIp || !config?.obsPort || !config?.obsSourceName || !config?.groqApiKey
@@ -215,9 +210,31 @@ function App(): JSX.Element {
   const [updateInfo, setUpdateInfo] = useState<any>(null)
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [geminiModels, setGeminiModels] = useState<string[]>([])
   const [showUpdateToast, setShowUpdateToast] = useState(false)
   const [showGroqInstructions, setShowGroqInstructions] = useState(false)
+  const [updateProgress, setUpdateProgress] = useState<number>(0)
+  const [isUpdateDownloaded, setIsUpdateDownloaded] = useState(false)
+  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false)
+  const [isBooting, setIsBooting] = useState(true)
+  const [showWizard, setShowWizard] = useState(false)
+  const [wizardStep, setWizardStep] = useState(0)
+
+  useEffect(() => {
+    const bootTimer = setTimeout(() => {
+      setIsBooting(false)
+      // ブート後に設定が不完全ならウィザードを表示
+      if (!config?.obsIp || !config?.obsPort || !config?.groqApiKey) {
+        setShowWizard(true)
+      }
+    }, 2500)
+    return () => clearTimeout(bootTimer)
+  }, [config])
+
+  const calculateRaceScore = (rank: number | undefined): number => {
+    if (!rank) return 0
+    const scores = [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+    return scores[rank - 1] || 0
+  }
 
   const addLog = useCallback((message: string, type: 'info' | 'success' | 'error' = 'info') => {
     setLogs(prev => [{
@@ -232,21 +249,50 @@ function App(): JSX.Element {
     
     if (!silent) setIsCheckingUpdate(true)
     try {
+      console.log('Starting update check...');
       // @ts-ignore
       const result = await window.electron.ipcRenderer.invoke('check-for-updates')
+      console.log('Update check result:', result);
+      
+      if (result.success === false) {
+        if (!silent) addLog(`アップデートチェックエラー: ${result.error}`, 'error')
+        return
+      }
+
       if (result.hasUpdate) {
         setUpdateInfo(result)
         setShowUpdateToast(true)
-        if (!silent) addLog(`新しいバージョン ${result.latestVersion} が利用可能です`, 'info')
+        const displayCurrent = result.currentVersion || appVersion || '不明'
+        const displayLatest = result.latestVersion || '不明'
+        if (!silent) addLog(`新しいバージョン ${displayLatest} が利用可能です (現在: ${displayCurrent})`, 'info')
       } else {
-        if (!silent) addLog('最新バージョンを使用しています', 'success')
+        const displayCurrent = result.currentVersion || appVersion || '不明'
+        const displayLatest = result.latestVersion || '不明'
+        if (!silent) {
+          addLog(`最新バージョンを使用しています (現在: ${displayCurrent})`, 'success')
+          console.log(`Debug - Current: ${displayCurrent}, Latest: ${displayLatest}, hasUpdate: ${result.hasUpdate}`);
+        }
       }
-    } catch (error) {
-      if (!silent) addLog('アップデートチェックに失敗しました', 'error')
+    } catch (error: any) {
+      console.error('handleCheckUpdate global error:', error);
+      const errorMsg = error.message || JSON.stringify(error)
+      if (!silent) addLog(`アップデートチェックに失敗しました: ${errorMsg}`, 'error')
     } finally {
       if (!silent) setIsCheckingUpdate(false)
     }
-  }, [addLog])
+  }, [addLog, appVersion])
+
+  const handleStartDownloadUpdate = async () => {
+    if (!window.electron || !window.electron.ipcRenderer) return
+    setIsDownloadingUpdate(true)
+    addLog('アップデートのダウンロードを開始します...', 'info')
+    await window.electron.ipcRenderer.invoke('start-download-update')
+  }
+
+  const handleQuitAndInstall = () => {
+    if (!window.electron || !window.electron.ipcRenderer) return
+    window.electron.ipcRenderer.invoke('quit-and-install')
+  }
 
   const loadConfig = useCallback(async () => {
     try {
@@ -256,8 +302,8 @@ function App(): JSX.Element {
       }
       // @ts-ignore
       const cfg = await window.electron.ipcRenderer.invoke('get-config')
-      setConfig(cfg)
-      if (cfg.language) {
+      setConfig(cfg || {})
+      if (cfg && cfg.language) {
         i18n.changeLanguage(cfg.language)
       }
     } catch (error) {
@@ -278,16 +324,21 @@ function App(): JSX.Element {
 
   useEffect(() => {
     loadConfig()
+
+    // 起動アニメーション用のタイマー
+    const bootTimer = setTimeout(() => {
+      setIsBooting(false)
+    }, 2500)
     
     if (window.electron && window.electron.ipcRenderer) {
       // @ts-ignore
-      window.electron.ipcRenderer.invoke('get-app-version').then(setAppVersion)
+      window.electron.ipcRenderer.invoke('get-app-version').then((v) => {
+        setAppVersion(v)
+        console.log('App version loaded:', v)
+      })
 
       // Check for updates on startup
       handleCheckUpdate(true)
-
-      // @ts-ignore
-      window.electron.ipcRenderer.invoke('get-gemini-models').then(setGeminiModels)
 
       // @ts-ignore
       const portRequest = window.electron.ipcRenderer.invoke('get-server-port')
@@ -306,20 +357,56 @@ function App(): JSX.Element {
         handleFetchResults(true)
       })
 
+      // Auto-updater listeners
+      const removeUpdateAvailable = window.electron.ipcRenderer.on('update-available', (_event: any, info: any) => {
+        setUpdateInfo({
+          hasUpdate: true,
+          latestVersion: info.version,
+          isAutoUpdater: true
+        })
+        setShowUpdateToast(true)
+      })
+
+      const removeUpdateProgress = window.electron.ipcRenderer.on('update-download-progress', (_event: any, progress: any) => {
+        setUpdateProgress(progress.percent)
+      })
+
+      const removeUpdateDownloaded = window.electron.ipcRenderer.on('update-downloaded', () => {
+        setIsUpdateDownloaded(true)
+        setIsDownloadingUpdate(false)
+        addLog('アップデートのダウンロードが完了しました。再起動して適用してください', 'success')
+      })
+
+      const removeUpdateError = window.electron.ipcRenderer.on('update-error', (_event: any, err: any) => {
+        setIsDownloadingUpdate(false)
+        setIsCheckingUpdate(false)
+        console.error('Renderer received detailed update-error:', err)
+        
+        let displayError = ''
+        if (typeof err === 'string') {
+          displayError = err
+        } else {
+          try {
+            displayError = JSON.stringify(err)
+          } catch (e) {
+            displayError = String(err)
+          }
+        }
+        
+        addLog(`アップデートエラー: ${displayError}`, 'error')
+      })
+
       return () => {
         if (removeFetchListener) removeFetchListener()
         if (removeOverallListener) removeOverallListener()
+        if (removeUpdateAvailable) removeUpdateAvailable()
+        if (removeUpdateProgress) removeUpdateProgress()
+        if (removeUpdateDownloaded) removeUpdateDownloaded()
+        if (removeUpdateError) removeUpdateError()
       }
     }
     return () => {}
   }, [loadConfig, addLog])
-
-  useEffect(() => {
-    if (window.electron && window.electron.ipcRenderer && config?.geminiApiKey) {
-      // @ts-ignore
-      window.electron.ipcRenderer.invoke('get-gemini-models').then(setGeminiModels)
-    }
-  }, [config?.geminiApiKey])
 
   useEffect(() => {
     if (serverPort) {
@@ -611,12 +698,6 @@ function App(): JSX.Element {
     if (hasField('obsPassword')) newConfig.obsPassword = formData.get('obsPassword') as string
     if (hasField('obsSourceName')) newConfig.obsSourceName = formData.get('obsSourceName') as string
     if (hasField('aiProvider')) newConfig.aiProvider = formData.get('aiProvider') as any
-    if (hasField('geminiApiKey')) newConfig.geminiApiKey = formData.get('geminiApiKey') as string
-    if (hasField('geminiApiKeys')) {
-      const keysStr = formData.get('geminiApiKeys') as string
-      newConfig.geminiApiKeys = keysStr ? keysStr.split(',').map(k => k.trim()).filter(k => k !== '') : []
-    }
-    if (hasField('geminiModel')) newConfig.geminiModel = formData.get('geminiModel') as string
     if (hasField('openaiApiKey')) newConfig.openaiApiKey = formData.get('openaiApiKey') as string
     if (hasField('groqApiKey')) newConfig.groqApiKey = formData.get('groqApiKey') as string
     
@@ -639,10 +720,6 @@ function App(): JSX.Element {
       if (result.success) {
         setConfig(newConfig)
         addLog(t('messages.configSaved'), 'success')
-        // 保存後にモデルリストを再取得
-        if (window.electron && window.electron.ipcRenderer) {
-          window.electron.ipcRenderer.invoke('get-gemini-models').then(setGeminiModels)
-        }
       } else {
         addLog(t('messages.configSaveError'), 'error')
       }
@@ -695,7 +772,291 @@ function App(): JSX.Element {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans flex overflow-hidden">
+    <>
+      <AnimatePresence>
+        {isBooting && (
+          <motion.div
+            key="splash"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.1, filter: "blur(10px)" }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="fixed inset-0 z-[999] bg-[#0f172a] flex flex-col items-center justify-center pointer-events-none"
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ 
+                duration: 1.2, 
+                ease: "easeOut",
+                scale: { type: "spring", stiffness: 50 }
+              }}
+              className="relative"
+            >
+              <img 
+                src={bootLogo} 
+                alt="Boot Logo" 
+                className="w-[500px] h-auto drop-shadow-[0_0_30px_rgba(59,130,246,0.5)]"
+              />
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ duration: 2, ease: "easeInOut", delay: 0.5 }}
+                className="absolute -bottom-8 left-0 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent rounded-full shadow-[0_0_15px_rgba(59,130,246,0.8)]"
+              />
+            </motion.div>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1, duration: 0.8 }}
+              className="mt-12 text-blue-400 font-black tracking-[0.2em] text-sm uppercase"
+            >
+              Initializing Grosoq System
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showWizard && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[800] bg-[#0f172a]/95 backdrop-blur-xl flex items-center justify-center p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              className="bg-[#1e293b] w-full max-w-2xl rounded-3xl border border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+            >
+              {/* Wizard Header */}
+              <div className="p-8 border-b border-slate-800 bg-slate-800/30 flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                    <Zap className="text-blue-400" size={24} />
+                    初期設定ガイド
+                  </h2>
+                  <p className="text-slate-400 text-sm mt-1">Grosoqを使い始めるための必須設定を行います</p>
+                </div>
+                <div className="flex gap-1">
+                  {[0, 1, 2, 3].map((step) => (
+                    <div 
+                      key={step}
+                      className={cn(
+                        "w-8 h-1.5 rounded-full transition-all duration-500",
+                        wizardStep >= step ? "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" : "bg-slate-700"
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Wizard Content */}
+              <div className="flex-1 overflow-y-auto p-8">
+                <AnimatePresence mode="wait">
+                  {wizardStep === 0 && (
+                    <motion.div 
+                      key="step0"
+                      initial={{ x: 20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: -20, opacity: 0 }}
+                      className="space-y-6 text-center py-8"
+                    >
+                      <div className="w-20 h-20 bg-blue-600/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                        <Monitor className="text-blue-400" size={40} />
+                      </div>
+                      <h3 className="text-3xl font-bold text-white">ようこそ、Grosoqへ</h3>
+                      <p className="text-slate-300 leading-relaxed max-w-md mx-auto">
+                        Grosoqは、Groqの超高速なAIを使用してマリオカート8DXのレース結果を瞬時に分析するツールです。<br/>
+                        使い始めるために、2つの簡単な設定を行いましょう。
+                      </p>
+                      <button 
+                        onClick={() => setWizardStep(1)}
+                        className="mt-8 bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-2xl font-black text-lg transition-all shadow-xl shadow-blue-900/40 active:scale-95"
+                      >
+                        設定を開始する
+                      </button>
+                    </motion.div>
+                  )}
+
+                  {wizardStep === 1 && (
+                    <motion.div 
+                      key="step1"
+                      initial={{ x: 20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: -20, opacity: 0 }}
+                      className="space-y-6"
+                    >
+                      <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Zap className="text-green-400" size={20} />
+                        1. Groq APIキーの設定
+                      </h3>
+                      <p className="text-slate-400 text-sm">
+                        解析に使用するGroqのAPIキーを入力してください。無料で取得可能です。
+                      </p>
+                      
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Groq API Key</label>
+                          <input 
+                            type="password"
+                            placeholder="gsk_..."
+                            value={config?.groqApiKey || ''}
+                            onChange={(e) => setConfig({...config, groqApiKey: e.target.value})}
+                            className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
+                          />
+                        </div>
+
+                        <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 space-y-3">
+                          <h4 className="text-sm font-bold text-slate-300">取得方法:</h4>
+                          <ol className="text-xs text-slate-400 space-y-2 list-decimal list-inside">
+                            <li><a href="https://console.groq.com/keys" target="_blank" className="text-blue-400 hover:underline">Groq Console</a>にアクセスしてログイン</li>
+                            <li>「Create API Key」からキーを作成してコピー</li>
+                            <li>上の入力欄に貼り付け</li>
+                          </ol>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between pt-6">
+                        <button onClick={() => setWizardStep(0)} className="text-slate-500 hover:text-slate-300 font-medium">戻る</button>
+                        <button 
+                          disabled={!config?.groqApiKey}
+                          onClick={() => setWizardStep(2)}
+                          className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg"
+                        >
+                          次へ進む
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {wizardStep === 2 && (
+                    <motion.div 
+                      key="step2"
+                      initial={{ x: 20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: -20, opacity: 0 }}
+                      className="space-y-6"
+                    >
+                      <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Monitor className="text-blue-400" size={20} />
+                        2. OBS WebSocket 設定
+                      </h3>
+                      <p className="text-slate-400 text-sm">
+                        マリオカートの画面を取得するためにOBSに接続します。
+                      </p>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500">IPアドレス</label>
+                          <input 
+                            type="text"
+                            value={config?.obsIp || 'localhost'}
+                            onChange={(e) => setConfig({...config, obsIp: e.target.value})}
+                            className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-slate-500">ポート</label>
+                          <input 
+                            type="number"
+                            value={config?.obsPort || ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : parseInt(e.target.value)
+                              setConfig({...config, obsPort: val})
+                            }}
+                            className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500">WebSocket パスワード (任意)</label>
+                        <input 
+                          type="password"
+                          value={config?.obsPassword || ''}
+                          onChange={(e) => setConfig({...config, obsPassword: e.target.value})}
+                          placeholder="パスワードなし"
+                          className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500">キャプチャソース名</label>
+                        <input 
+                          type="text"
+                          value={config?.obsSourceName || ''}
+                          onChange={(e) => setConfig({...config, obsSourceName: e.target.value})}
+                          placeholder="映像キャプチャデバイス など"
+                          className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                        />
+                      </div>
+
+                      <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 space-y-3">
+                        <h4 className="text-sm font-bold text-slate-300">OBS側の設定確認:</h4>
+                        <ol className="text-xs text-slate-400 space-y-2 list-decimal list-inside">
+                          <li>OBSの「ツール」→「WebSocket サーバー設定」を開く</li>
+                          <li>「WebSocket サーバーを有効にする」にチェックを入れる</li>
+                          <li>ポート（通常4455）とパスワードを確認する</li>
+                        </ol>
+                      </div>
+
+                      <div className="flex justify-between pt-6">
+                        <button onClick={() => setWizardStep(1)} className="text-slate-500 hover:text-slate-300 font-medium">戻る</button>
+                        <button 
+                          disabled={!config?.obsIp || !config?.obsPort || !config?.obsSourceName}
+                          onClick={() => setWizardStep(3)}
+                          className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg"
+                        >
+                          最後へ進む
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {wizardStep === 3 && (
+                    <motion.div 
+                      key="step3"
+                      initial={{ x: 20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: -20, opacity: 0 }}
+                      className="space-y-6 text-center py-8"
+                    >
+                      <div className="w-20 h-20 bg-emerald-600/20 rounded-full flex items-center justify-center mx-auto mb-6 border-2 border-emerald-500/30">
+                        <CheckCircle2 className="text-emerald-500" size={40} />
+                      </div>
+                      <h3 className="text-3xl font-bold text-white">準備完了！</h3>
+                      <p className="text-slate-300 leading-relaxed max-w-md mx-auto">
+                        すべての設定が完了しました。これから「Grosoq」の超高速解析を体験しましょう。
+                      </p>
+                      
+                      <div className="pt-8">
+                        <button 
+                          onClick={async () => {
+                            // 設定を保存してウィザードを閉じる
+                            if (window.electron && window.electron.ipcRenderer) {
+                              const result = await window.electron.ipcRenderer.invoke('save-config', config)
+                              if (result.success) {
+                                setShowWizard(false)
+                                addLog('初期設定が完了しました', 'success')
+                              }
+                            }
+                          }}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-4 rounded-2xl font-black text-lg transition-all shadow-xl shadow-emerald-900/40 active:scale-95 flex items-center gap-2 mx-auto"
+                        >
+                          Grosoqを使い始める
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans flex overflow-hidden">
       {/* Sidebar */}
       <div className={cn(
         "bg-[#1e293b] border-r border-slate-800 flex flex-col transition-all duration-300 ease-in-out relative group",
@@ -715,7 +1076,7 @@ function App(): JSX.Element {
           </div>
           {!isSidebarCollapsed && (
             <h1 className="text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent whitespace-nowrap">
-              Grosoku
+              Grosoq
             </h1>
           )}
         </div>
@@ -851,12 +1212,35 @@ function App(): JSX.Element {
               <h4 className="font-bold text-sm">アップデートがあります</h4>
               <p className="text-xs text-blue-100">v{appVersion} → v{updateInfo?.latestVersion}</p>
               <div className="flex gap-2 mt-2">
-                <button 
-                  onClick={() => window.electron.ipcRenderer.invoke('open-external', updateInfo.url)}
-                  className="bg-white text-blue-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
-                >
-                  ダウンロード
-                </button>
+                {isUpdateDownloaded ? (
+                  <button 
+                    onClick={handleQuitAndInstall}
+                    className="bg-emerald-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-900/40"
+                  >
+                    再起動して適用
+                  </button>
+                ) : isDownloadingUpdate ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-20 h-1.5 bg-blue-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-white transition-all duration-300" style={{ width: `${updateProgress}%` }} />
+                    </div>
+                    <span className="text-[10px] font-mono">{Math.round(updateProgress)}%</span>
+                  </div>
+                ) : updateInfo?.isAutoUpdater ? (
+                  <button 
+                    onClick={handleStartDownloadUpdate}
+                    className="bg-white text-blue-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
+                  >
+                    アップデート
+                  </button>
+                ) : (
+                  <button 
+                    onClick={() => window.electron.ipcRenderer.invoke('open-external', updateInfo.url)}
+                    className="bg-white text-blue-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
+                  >
+                    詳細
+                  </button>
+                )}
                 <button 
                   onClick={() => setShowUpdateToast(false)}
                   className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-400 transition-colors"
@@ -1345,22 +1729,50 @@ function App(): JSX.Element {
               </header>
 
               {updateInfo && (
-                <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-6 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 bg-blue-600 rounded-xl">
-                      <Download className="text-white" size={24} />
+                <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-6 flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-blue-600 rounded-xl">
+                        <Download className="text-white" size={24} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-white">新しいバージョンが利用可能です</h3>
+                        <p className="text-blue-400 text-sm">v{appVersion} → v{updateInfo.latestVersion}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-white">新しいバージョンが利用可能です</h3>
-                      <p className="text-blue-400 text-sm">v{appVersion} → v{updateInfo.latestVersion}</p>
-                    </div>
+                    {isUpdateDownloaded ? (
+                      <button 
+                        onClick={handleQuitAndInstall}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
+                      >
+                        再起動して適用
+                      </button>
+                    ) : isDownloadingUpdate ? (
+                      <div className="text-right">
+                        <p className="text-xs text-blue-400 mb-1 font-mono">{Math.round(updateProgress)}%</p>
+                        <div className="w-32 h-2 bg-slate-800 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-blue-500 transition-all duration-300" 
+                            style={{ width: `${updateProgress}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : updateInfo.isAutoUpdater ? (
+                      <button 
+                        onClick={handleStartDownloadUpdate}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
+                      >
+                        アップデートを開始
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => window.electron.ipcRenderer.invoke('open-external', updateInfo.url)}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
+                      >
+                        ブラウザでダウンロード
+                      </button>
+                    )}
                   </div>
-                  <button 
-                    onClick={() => window.electron.ipcRenderer.invoke('open-external', updateInfo.url)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
-                  >
-                    ダウンロード
-                  </button>
                 </div>
               )}
 
@@ -1448,12 +1860,12 @@ function App(): JSX.Element {
 
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-400">Groq APIキー</label>
+                      <label className="text-sm font-medium text-slate-400">{t('config.groqApiKey')}</label>
                       <input 
                         name="groqApiKey"
                         type="password" 
                         defaultValue={config?.groqApiKey}
-                        placeholder="gsk-xxxxxxxxxxxxxxxx"
+                        placeholder={t('config.groqApiKeyPlaceholder')}
                         className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all"
                       />
                       <p className="text-xs text-slate-500 italic">
@@ -1534,7 +1946,7 @@ function App(): JSX.Element {
               <div className="w-24 h-24 bg-blue-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-900/40 mx-auto mb-8">
                 <Monitor className="text-white" size={48} />
               </div>
-              <h2 className="text-4xl font-bold text-white">Grosoku-GUI</h2>
+              <h2 className="text-4xl font-bold text-white">Grosoq</h2>
               <p className="text-xl text-slate-400 leading-relaxed">
                 {t('app.subtitle')}
               </p>
@@ -1550,6 +1962,7 @@ function App(): JSX.Element {
         </div>
       </main>
     </div>
+    </>
   )
 }
 
