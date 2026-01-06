@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": [
+    "electron.vite.config.ts",
+    "tailwind.config.js",
+    "postcss.config.js"
+  ]
+}

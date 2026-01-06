@@ -54,7 +54,7 @@ cp config.json config.json.backup
 cp scores.json scores.json.backup
 
 # プレイヤーマッピング
-cp player-mapping.json player-mapping.json.backup
+cp player-mappings.json player-mappings.json.backup
 
 # 環境設定
 cp .env .env.backup

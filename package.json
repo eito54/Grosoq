@@ -1,15 +1,16 @@
 {
   "name": "Gemisoku-GUI",
-  "version": "1.4.2",
+  "version": "2.0.1",
   "private": true,
   "scripts": {
-    "start": "electron gui/main.js",
-    "dev": "electron gui/main.js",
-    "build": "electron-builder",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "start": "electron-vite preview",
+    "build-win": "electron-vite build && electron-builder --win",
+    "build-mac": "electron-vite build && electron-builder --mac",
+    "build-linux": "electron-vite build && electron-builder --linux",
     "pack": "electron-builder --dir",
-    "build-win": "electron-builder --win",
-    "build-mac": "electron-builder --mac",
-    "build-linux": "electron-builder --linux",
     "dist": "npm run build",
     "release": "electron-builder --publish=always",
     "release-win": "electron-builder --win --publish=always",
@@ -23,21 +24,41 @@
     "yarn": "use pnpm please!"
   },
   "dependencies": {
+    "@electron-toolkit/preload": "^3.0.2",
+    "@electron-toolkit/utils": "^4.0.0",
     "@google/generative-ai": "^0.24.1",
+    "clsx": "^2.1.1",
+    "electron-updater": "^6.1.8",
+    "framer-motion": "^12.24.0",
+    "i18next": "^25.7.3",
+    "lucide-react": "^0.562.0",
     "obs-websocket-js": "^5.0.6",
-    "electron-updater": "^6.1.8"
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-i18next": "^16.5.1",
+    "react-router-dom": "^7.11.0",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
-    "electron": "^36.3.2",
-    "electron-builder": "^26.0.12"
+    "@electron-toolkit/tsconfig": "^2.0.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.3",
+    "@vitejs/plugin-react": "^5.1.2",
+    "autoprefixer": "^10.4.23",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
+    "electron-vite": "^5.0.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "vite": "^7.3.0"
   },
   "optionalDependencies": {
     "electron-store": "^8.2.0",
     "express": "^4.21.2"
   },
-  "main": "gui/main.js",
+  "main": "./out/main/index.js",
   "description": "Gemisoku-GUI - MK8DXレース結果自動取得アプリ",
-  "author": "eighten (eito54)",
+  "author": "eito54",
   "build": {
     "appId": "com.gemisoku.gui",
     "productName": "Gemisoku-GUI",
@@ -45,7 +66,8 @@
       "output": "dist-gui"
     },
     "files": [
-      "gui/**/*",
+      "out/**/*",
+      "public/**/*",
       "node_modules/electron-store/**/*",
       "node_modules/obs-websocket-js/**/*",
       "node_modules/@google/generative-ai/**/*",

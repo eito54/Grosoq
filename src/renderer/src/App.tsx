@@ -1,0 +1,1556 @@
+import React, { useState, useEffect, useCallback } from 'react'
+import { 
+  Settings, 
+  Play, 
+  BarChart3, 
+  ExternalLink, 
+  RefreshCw, 
+  Monitor,
+  Info,
+  CheckCircle2,
+  Trash2,
+  Globe,
+  History,
+  Save,
+  Zap,
+  AlertCircle,
+  Users,
+  Palette,
+  Trophy,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+  Layout
+} from 'lucide-react'
+import { clsx, type ClassValue } from 'clsx'
+import { twMerge } from 'tailwind-merge'
+import { useTranslation } from 'react-i18next'
+import { motion, AnimatePresence, animate } from 'framer-motion'
+
+function CountUp({ value, duration = 1 }: { value: number; duration?: number }) {
+  const [displayValue, setDisplayValue] = useState(value)
+  const [isCounting, setIsCounting] = useState(false)
+
+  useEffect(() => {
+    if (value !== displayValue) {
+      setIsCounting(true)
+      const controls = animate(displayValue, value, {
+        duration,
+        onUpdate: (latest) => setDisplayValue(Math.floor(latest)),
+        onComplete: () => setIsCounting(false)
+      })
+      return () => controls.stop()
+    }
+    return undefined
+  }, [value])
+
+  return <span className={cn(isCounting && "counting-text transition-all")}>{displayValue}</span>
+}
+
+function ScoreItem({ 
+  team, 
+  index, 
+  isEditing, 
+  onRemove, 
+  onChange,
+  onSetCurrentPlayer
+}: { 
+  team: any; 
+  index: number; 
+  isEditing: boolean; 
+  onRemove: (i: number) => void;
+  onChange: (i: number, field: string, value: any) => void;
+  onSetCurrentPlayer?: () => void;
+}) {
+  const [isFlashing, setIsFlashing] = useState(false)
+  const [prevScore, setPrevScore] = useState(team.score)
+  const [showAdded, setShowAdded] = useState(false)
+  const isCurrentPlayer = team.isCurrentPlayer
+
+  useEffect(() => {
+    if (team.score > prevScore) {
+      setIsFlashing(true)
+      setShowAdded(true)
+      const flashTimer = setTimeout(() => setIsFlashing(false), 1200)
+      const addedTimer = setTimeout(() => setShowAdded(false), 3000)
+      setPrevScore(team.score)
+      return () => {
+        clearTimeout(flashTimer)
+        clearTimeout(addedTimer)
+      }
+    }
+    setPrevScore(team.score)
+    return undefined
+  }, [team.score])
+
+  return (
+    <motion.tr 
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+      className={cn(
+        "hover:bg-slate-800/30 transition-colors relative group",
+        isFlashing && "animate-score-flash",
+        index === 0 && "rainbow-border",
+        isCurrentPlayer && "current-player-glow"
+      )}
+    >
+      <td className="px-6 py-4 font-medium text-slate-200">
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            "w-8 h-8 flex items-center justify-center font-black italic parallelogram-border",
+            index === 0 ? "bg-yellow-500/20 text-yellow-500 border-yellow-500/50" :
+            index === 1 ? "bg-slate-300/20 text-slate-300 border-slate-400/50" :
+            index === 2 ? "bg-amber-600/20 text-amber-600 border-amber-700/50" :
+            "bg-slate-700/30 text-slate-500 border-slate-600/30"
+          )}>
+            {index === 0 ? <Trophy size={16} className="animate-bounce" /> : index + 1}
+          </div>
+          {isEditing ? (
+            <input 
+              type="text" 
+              value={team.name || team.team || ''}
+              onChange={(e) => onChange(index, 'name', e.target.value)}
+              className="bg-[#0f172a] border border-slate-700 rounded px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className={cn("font-bold", isCurrentPlayer ? "text-blue-400" : "text-slate-100")}>
+                {team.name || team.team}
+              </span>
+              {isCurrentPlayer ? (
+                <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider">You</span>
+              ) : (
+                <button 
+                  onClick={onSetCurrentPlayer}
+                  className="opacity-0 group-hover:opacity-100 text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-400 px-1.5 py-0.5 rounded transition-all"
+                >
+                  自チームに設定
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </td>
+      <td className="px-6 py-4 text-right font-bold text-blue-400 relative">
+        <div className="flex items-center justify-end gap-2">
+          {isEditing ? (
+            <input 
+              type="number" 
+              value={team.score}
+              onChange={(e) => onChange(index, 'score', e.target.value)}
+              className="bg-[#0f172a] border border-slate-700 rounded px-2 py-1 w-20 text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          ) : (
+            <div className="text-2xl font-mono">
+              <CountUp value={team.score} />
+            </div>
+          )}
+          
+          <AnimatePresence>
+            {showAdded && team.addedScore > 0 && (
+              <motion.span
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: -25 }}
+                exit={{ opacity: 0 }}
+                className="absolute right-6 top-0 text-emerald-400 text-sm font-black pointer-events-none drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] animate-added-score"
+              >
+                +{team.addedScore}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
+      </td>
+      {isEditing && (
+        <td className="px-6 py-4 text-right">
+          <button 
+            onClick={() => onRemove(index)}
+            className="text-red-500 hover:text-red-400"
+          >
+            <Trash2 size={16} />
+          </button>
+        </td>
+      )}
+    </motion.tr>
+  )
+}
+
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
+interface LogEntry {
+  message: string
+  timestamp: string
+  type: 'info' | 'success' | 'error'
+}
+
+function App(): JSX.Element {
+  const { t, i18n } = useTranslation()
+
+  const calculateRaceScore = (rank: number | undefined): number => {
+    if (!rank) return 0
+    const scores = [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+    return scores[rank - 1] || 0
+  }
+
+  const [config, setConfig] = useState<any>(null)
+  
+  const isConfigInvalid = !config?.obsIp || !config?.obsPort || !config?.obsSourceName || !config?.groqApiKey
+
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'reopen' | 'mappings' | 'overlay' | 'settings' | 'about'>('dashboard')
+  const [logs, setLogs] = useState<LogEntry[]>([])
+  const [scores, setScores] = useState<any[]>([])
+  const [serverPort, setServerPort] = useState<number>(3001)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingScores, setEditingScores] = useState<any[]>([])
+  const [slots, setSlots] = useState<any[]>([])
+  const [playerMappings, setPlayerMappings] = useState<Record<string, string>>({})
+  const [isEditingMappings, setIsEditingMappings] = useState(false)
+  const [editingMappings, setEditingMappings] = useState<{ name: string, team: string }[]>([])
+  const [appVersion, setAppVersion] = useState<string>('')
+  const [updateInfo, setUpdateInfo] = useState<any>(null)
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [geminiModels, setGeminiModels] = useState<string[]>([])
+  const [showUpdateToast, setShowUpdateToast] = useState(false)
+  const [showGroqInstructions, setShowGroqInstructions] = useState(false)
+
+  const addLog = useCallback((message: string, type: 'info' | 'success' | 'error' = 'info') => {
+    setLogs(prev => [{
+      message,
+      type,
+      timestamp: new Date().toLocaleTimeString()
+    }, ...prev].slice(0, 50))
+  }, [])
+
+  const handleCheckUpdate = useCallback(async (silent = false) => {
+    if (!window.electron || !window.electron.ipcRenderer) return
+    
+    if (!silent) setIsCheckingUpdate(true)
+    try {
+      // @ts-ignore
+      const result = await window.electron.ipcRenderer.invoke('check-for-updates')
+      if (result.hasUpdate) {
+        setUpdateInfo(result)
+        setShowUpdateToast(true)
+        if (!silent) addLog(`新しいバージョン ${result.latestVersion} が利用可能です`, 'info')
+      } else {
+        if (!silent) addLog('最新バージョンを使用しています', 'success')
+      }
+    } catch (error) {
+      if (!silent) addLog('アップデートチェックに失敗しました', 'error')
+    } finally {
+      if (!silent) setIsCheckingUpdate(false)
+    }
+  }, [addLog])
+
+  const loadConfig = useCallback(async () => {
+    try {
+      if (!window.electron || !window.electron.ipcRenderer) {
+        console.warn('Electron IPC is not available. This might be expected in a browser preview.')
+        return
+      }
+      // @ts-ignore
+      const cfg = await window.electron.ipcRenderer.invoke('get-config')
+      setConfig(cfg)
+      if (cfg.language) {
+        i18n.changeLanguage(cfg.language)
+      }
+    } catch (error) {
+      console.error('Failed to load config:', error)
+      addLog('設定の読み込みに失敗しました', 'error')
+    }
+  }, [addLog, i18n])
+
+  const loadScores = useCallback(async () => {
+    try {
+      const response = await fetch(`http://localhost:${serverPort}/api/scores`)
+      const data = await response.json()
+      setScores(data.scores || [])
+    } catch (error) {
+      console.error('Failed to load scores:', error)
+    }
+  }, [serverPort])
+
+  useEffect(() => {
+    loadConfig()
+    
+    if (window.electron && window.electron.ipcRenderer) {
+      // @ts-ignore
+      window.electron.ipcRenderer.invoke('get-app-version').then(setAppVersion)
+
+      // Check for updates on startup
+      handleCheckUpdate(true)
+
+      // @ts-ignore
+      window.electron.ipcRenderer.invoke('get-gemini-models').then(setGeminiModels)
+
+      // @ts-ignore
+      const portRequest = window.electron.ipcRenderer.invoke('get-server-port')
+      portRequest.then((port: number) => {
+        setServerPort(port)
+        addLog(`内蔵サーバーがポート ${port} で待機中です`, 'success')
+      })
+
+      // Listen for global shortcuts
+      // @ts-ignore
+      const removeFetchListener = window.electron.ipcRenderer.on('trigger-fetch-race-results', () => {
+        handleFetchResults(false)
+      })
+      // @ts-ignore
+      const removeOverallListener = window.electron.ipcRenderer.on('trigger-fetch-overall-scores', () => {
+        handleFetchResults(true)
+      })
+
+      return () => {
+        if (removeFetchListener) removeFetchListener()
+        if (removeOverallListener) removeOverallListener()
+      }
+    }
+    return () => {}
+  }, [loadConfig, addLog])
+
+  useEffect(() => {
+    if (window.electron && window.electron.ipcRenderer && config?.geminiApiKey) {
+      // @ts-ignore
+      window.electron.ipcRenderer.invoke('get-gemini-models').then(setGeminiModels)
+    }
+  }, [config?.geminiApiKey])
+
+  useEffect(() => {
+    if (serverPort) {
+      loadScores()
+      loadPlayerMappings()
+      
+      // SSE for real-time updates
+      const eventSource = new EventSource(`http://localhost:${serverPort}/api/scores/events`)
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data)
+        if (data.type === 'scores-updated') {
+          loadScores()
+        }
+      }
+
+      return () => eventSource.close()
+    }
+    return undefined
+  }, [serverPort, loadScores])
+
+  const handleFetchResults = async (useTotalScore: boolean = false) => {
+    if (status === 'loading') return
+    if (!window.electron || !window.electron.ipcRenderer) return
+    
+    setStatus('loading')
+    addLog(useTotalScore ? 'チーム合計点を取得中...' : 'レース結果を取得中...', 'info')
+    
+    try {
+      // @ts-ignore
+      const result = await window.electron.ipcRenderer.invoke('fetch-race-results', useTotalScore)
+      
+      if (result.success) {
+        setStatus('success')
+        addLog('結果の取得に成功しました', 'success')
+        
+        // Process results and update scores via server API
+        const raceResults = result.results
+        const teamScores: Record<string, number> = {}
+        
+        raceResults.forEach((res: any) => {
+          if (res.team) {
+            const score = useTotalScore ? (res.score || res.totalScore || 0) : calculateRaceScore(res.rank)
+            teamScores[res.team] = (teamScores[res.team] || 0) + score
+          }
+        })
+
+        // Update scores on server
+        const currentScoresResponse = await fetch(`http://localhost:${serverPort}/api/scores`)
+        const currentData = await currentScoresResponse.json()
+        const currentScores = currentData.scores || []
+        
+        const updatedScores = [...currentScores]
+        
+        // 自チーム情報を探す
+        const selfResult = raceResults.find((r: any) => r.isCurrentPlayer)
+        const selfTeamName = selfResult?.team
+
+        Object.entries(teamScores).forEach(([teamName, score]) => {
+          const index = updatedScores.findIndex(s => (s.name || s.team) === teamName)
+          if (index !== -1) {
+            if (useTotalScore) {
+              updatedScores[index].score = score
+              updatedScores[index].addedScore = 0
+            } else {
+              updatedScores[index].addedScore = score
+              updatedScores[index].score = (updatedScores[index].score || 0) + score
+            }
+            // 自チームフラグを更新
+            if (selfTeamName && teamName === selfTeamName) {
+              updatedScores.forEach(s => s.isCurrentPlayer = false)
+              updatedScores[index].isCurrentPlayer = true
+            }
+          } else {
+            updatedScores.push({ 
+              name: teamName, 
+              score, 
+              addedScore: useTotalScore ? 0 : score,
+              isCurrentPlayer: selfTeamName ? (teamName === selfTeamName) : false
+            })
+          }
+        })
+
+        await fetch(`http://localhost:${serverPort}/api/scores?isOverallUpdate=${useTotalScore}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updatedScores)
+        })
+        
+        loadScores()
+      } else {
+        setStatus('error')
+        addLog(`エラー: ${result.error}`, 'error')
+        // @ts-ignore
+        window.electron.ipcRenderer.invoke('show-message', 'error', 'エラー', result.error)
+      }
+    } catch (error: any) {
+      setStatus('error')
+      addLog(`通信エラー: ${error.message}`, 'error')
+    }
+  }
+
+  const handleStartEdit = () => {
+    setEditingScores(JSON.parse(JSON.stringify(scores)))
+    setIsEditing(true)
+  }
+
+  const handleSaveEditedScores = async (passedScores?: any[]) => {
+    try {
+      const scoresToSave = (passedScores || editingScores).map(s => ({ ...s, addedScore: 0 }))
+      await fetch(`http://localhost:${serverPort}/api/scores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scoresToSave)
+      })
+      setIsEditing(false)
+      loadScores()
+      addLog('スコアを更新しました', 'success')
+    } catch (error) {
+      addLog('スコアの更新に失敗しました', 'error')
+    }
+  }
+
+  const handleScoreChange = (index: number, field: string, value: any) => {
+    const newScores = JSON.parse(JSON.stringify(editingScores))
+    if (field === 'name') {
+      newScores[index].name = value
+      newScores[index].team = value
+    } else {
+      newScores[index][field] = field === 'score' ? parseInt(value) || 0 : value
+    }
+    setEditingScores(newScores)
+  }
+
+  const handleAddTeam = () => {
+    setEditingScores([...editingScores, { name: 'New Team', team: 'New Team', score: 0 }])
+  }
+
+  const handleRemoveTeam = (index: number) => {
+    const newScores = [...editingScores]
+    newScores.splice(index, 1)
+    setEditingScores(newScores)
+  }
+
+  const fetchSlots = useCallback(async () => {
+    try {
+      const response = await fetch(`http://localhost:${serverPort}/api/reopen-slots`)
+      const data = await response.json()
+      setSlots(data)
+    } catch (error) {
+      console.error('Failed to fetch slots:', error)
+    }
+  }, [serverPort])
+
+  const handleSaveSlot = async (slotId: number) => {
+    try {
+      const name = prompt('セーブ名を入力してください', `スロット ${slotId + 1}`)
+      if (!name) return
+
+      const slotData = {
+        slotId,
+        name,
+        timestamp: new Date().toISOString(),
+        scores,
+        remainingRaces: 0 // TODO: calculate this
+      }
+
+      const response = await fetch(`http://localhost:${serverPort}/api/reopen-slots`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(slotData)
+      })
+
+      if (response.ok) {
+        fetchSlots()
+        addLog(`スロット ${slotId + 1} に保存しました`, 'success')
+      }
+    } catch (error) {
+      console.error('Failed to save slot:', error)
+      addLog('保存に失敗しました', 'error')
+    }
+  }
+
+  const handleLoadSlot = async (slotId: number) => {
+    const slot = slots.find(s => s.slotId === slotId)
+    if (!slot) return
+
+    if (!confirm(`「${slot.name}」をロードしますか？現在のスコアは上書きされます。`)) return
+
+    try {
+      const response = await fetch(`http://localhost:${serverPort}/api/scores`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(slot.scores)
+      })
+
+      if (response.ok) {
+        loadScores()
+        addLog(`「${slot.name}」をロードしました`, 'success')
+        setActiveTab('dashboard')
+      }
+    } catch (error) {
+      console.error('Failed to load slot:', error)
+      addLog('ロードに失敗しました', 'error')
+    }
+  }
+
+  const handleResetScores = async () => {
+    if (!confirm('スコアをリセットしますか？')) return
+    try {
+      await fetch(`http://localhost:${serverPort}/api/scores/reset`, { method: 'POST' })
+      loadScores()
+      addLog('スコアをリセットしました', 'success')
+    } catch (error) {
+      addLog('スコアのリセットに失敗しました', 'error')
+    }
+  }
+
+  const loadPlayerMappings = useCallback(async () => {
+    try {
+      const response = await fetch(`http://localhost:${serverPort}/api/player-mapping`)
+      const data = await response.json()
+      setPlayerMappings(data || {})
+    } catch (error) {
+      console.error('Failed to load player mappings:', error)
+    }
+  }, [serverPort])
+
+  const handleStartEditMappings = () => {
+    const mappingArray = Object.entries(playerMappings).map(([name, team]) => ({ name, team }))
+    setEditingMappings(mappingArray)
+    setIsEditingMappings(true)
+  }
+
+  const handleSaveMappings = async () => {
+    try {
+      const mappingObj: Record<string, string> = {}
+      editingMappings.forEach(m => {
+        if (m.name.trim()) mappingObj[m.name.trim()] = m.team.trim()
+      })
+
+      await fetch(`http://localhost:${serverPort}/api/player-mapping`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(mappingObj)
+      })
+      setIsEditingMappings(false)
+      loadPlayerMappings()
+      addLog('プレイヤーマッピングを更新しました', 'success')
+    } catch (error) {
+      addLog('マッピングの更新に失敗しました', 'error')
+    }
+  }
+
+  const handleMappingChange = (index: number, field: 'name' | 'team', value: string) => {
+    const newMappings = [...editingMappings]
+    newMappings[index][field] = value
+    setEditingMappings(newMappings)
+  }
+
+  const handleAddMapping = () => {
+    setEditingMappings([...editingMappings, { name: '', team: '' }])
+  }
+
+  const handleRemoveMapping = (index: number) => {
+    const newMappings = [...editingMappings]
+    newMappings.splice(index, 1)
+    setEditingMappings(newMappings)
+  }
+
+  const handleSaveConfig = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const form = e.target as HTMLFormElement
+    const formData = new FormData(form)
+    
+    // フォームに存在するフィールドのみを更新するように修正
+    // これにより、別タブのフォーム保存時に既存の設定が null で上書きされるのを防ぐ
+    const newConfig = { ...config }
+    
+    // フォーム内に特定の名前の入力要素が存在するかチェックする関数
+    const hasField = (name: string) => {
+      return form.querySelector(`[name="${name}"]`) !== null
+    }
+    
+    if (hasField('obsIp')) newConfig.obsIp = formData.get('obsIp') as string
+    if (hasField('obsPort')) {
+      const port = parseInt(formData.get('obsPort') as string)
+      if (!isNaN(port)) newConfig.obsPort = port
+    }
+    if (hasField('obsPassword')) newConfig.obsPassword = formData.get('obsPassword') as string
+    if (hasField('obsSourceName')) newConfig.obsSourceName = formData.get('obsSourceName') as string
+    if (hasField('aiProvider')) newConfig.aiProvider = formData.get('aiProvider') as any
+    if (hasField('geminiApiKey')) newConfig.geminiApiKey = formData.get('geminiApiKey') as string
+    if (hasField('geminiApiKeys')) {
+      const keysStr = formData.get('geminiApiKeys') as string
+      newConfig.geminiApiKeys = keysStr ? keysStr.split(',').map(k => k.trim()).filter(k => k !== '') : []
+    }
+    if (hasField('geminiModel')) newConfig.geminiModel = formData.get('geminiModel') as string
+    if (hasField('openaiApiKey')) newConfig.openaiApiKey = formData.get('openaiApiKey') as string
+    if (hasField('groqApiKey')) newConfig.groqApiKey = formData.get('groqApiKey') as string
+    
+    if (hasField('showRemainingRaces')) {
+      newConfig.showRemainingRaces = formData.get('showRemainingRaces') === 'on'
+    }
+    
+    // スコア設定の更新
+    if (hasField('keepScoreOnRestart')) {
+      newConfig.scoreSettings = {
+        ...config.scoreSettings,
+        keepScoreOnRestart: formData.get('keepScoreOnRestart') === 'on'
+      }
+    }
+
+    try {
+      if (!window.electron || !window.electron.ipcRenderer) return
+      // @ts-ignore
+      const result = await window.electron.ipcRenderer.invoke('save-config', newConfig)
+      if (result.success) {
+        setConfig(newConfig)
+        addLog(t('messages.configSaved'), 'success')
+        // 保存後にモデルリストを再取得
+        if (window.electron && window.electron.ipcRenderer) {
+          window.electron.ipcRenderer.invoke('get-gemini-models').then(setGeminiModels)
+        }
+      } else {
+        addLog(t('messages.configSaveError'), 'error')
+      }
+    } catch (error) {
+      addLog('設定の保存に失敗しました', 'error')
+    }
+  }
+
+  const handleOpenOverlay = () => {
+    const url = `http://localhost:${serverPort}/`
+    // @ts-ignore
+    window.electron.ipcRenderer.invoke('open-external', url)
+  }
+
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'ja' ? 'en' : 'ja'
+    i18n.changeLanguage(newLang)
+    if (config) {
+      const updatedConfig = { ...config, language: newLang }
+      // @ts-ignore
+      window.electron.ipcRenderer.invoke('save-config', updatedConfig)
+    }
+  }
+
+  const Toggle = ({ name, defaultChecked, label, help }: { name: string, defaultChecked: boolean, label: string, help?: string }) => {
+    const [checked, setChecked] = useState(defaultChecked)
+    
+    useEffect(() => {
+      setChecked(defaultChecked)
+    }, [defaultChecked])
+
+    return (
+      <div className="flex items-center justify-between p-4 bg-[#0f172a] rounded-xl border border-slate-700">
+        <div>
+          <p className="font-medium text-slate-200">{label}</p>
+          {help && <p className="text-xs text-slate-500">{help}</p>}
+        </div>
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input 
+            type="checkbox" 
+            name={name}
+            checked={checked}
+            onChange={(e) => setChecked(e.target.checked)}
+            className="sr-only peer" 
+          />
+          <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+        </label>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans flex overflow-hidden">
+      {/* Sidebar */}
+      <div className={cn(
+        "bg-[#1e293b] border-r border-slate-800 flex flex-col transition-all duration-300 ease-in-out relative group",
+        isSidebarCollapsed ? "w-20" : "w-64"
+      )}>
+        {/* Collapse Toggle Button */}
+        <button 
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute -right-3 top-10 w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+        >
+          {isSidebarCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
+
+        <div className={cn("p-6 flex items-center gap-3 overflow-hidden", isSidebarCollapsed && "justify-center px-0")}>
+          <div className="min-w-[40px] w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/20">
+            <Monitor className="text-white" size={24} />
+          </div>
+          {!isSidebarCollapsed && (
+            <h1 className="text-xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent whitespace-nowrap">
+              Grosoku
+            </h1>
+          )}
+        </div>
+
+        <div className={cn("px-4 mb-4", isSidebarCollapsed && "px-2")}>
+          <div className={cn("bg-slate-800/50 rounded-2xl p-3 border border-slate-700/50", isSidebarCollapsed && "p-1")}>
+            {!isSidebarCollapsed && (
+              <div className="flex justify-between items-center mb-1 px-1">
+                <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold">Version</p>
+                <p className="text-[10px] font-mono text-slate-400">{appVersion}</p>
+              </div>
+            )}
+            <button 
+              onClick={() => handleCheckUpdate()}
+              disabled={isCheckingUpdate}
+              className={cn(
+                "w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-50",
+                updateInfo ? "bg-blue-600 text-white animate-pulse shadow-lg shadow-blue-900/40" : "bg-blue-600/20 hover:bg-blue-600/30 text-blue-400",
+                isSidebarCollapsed && "px-0"
+              )}
+              title={isSidebarCollapsed ? `v${appVersion} - アップデート確認` : undefined}
+            >
+              {isCheckingUpdate ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
+              {!isSidebarCollapsed && (updateInfo ? "アップデートあり！" : "アップデート確認")}
+            </button>
+          </div>
+        </div>
+
+        <nav className="flex-1 px-4 space-y-2 mt-2">
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+              activeTab === 'dashboard' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
+              isSidebarCollapsed && "justify-center px-0"
+            )}
+            title={isSidebarCollapsed ? t('operations.title') : undefined}
+          >
+            <BarChart3 size={20} />
+            {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">{t('operations.title')}</span>}
+          </button>
+          <button 
+            onClick={() => setActiveTab('reopen')}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+              activeTab === 'reopen' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
+              isSidebarCollapsed && "justify-center px-0"
+            )}
+            title={isSidebarCollapsed ? "dcマネージャー" : undefined}
+          >
+            <History size={20} />
+            {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">dcマネージャー</span>}
+          </button>
+          <button 
+            onClick={() => setActiveTab('mappings')}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+              activeTab === 'mappings' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
+              isSidebarCollapsed && "justify-center px-0"
+            )}
+            title={isSidebarCollapsed ? "プレイヤーマッピング" : undefined}
+          >
+            <Users size={20} />
+            {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">プレイヤーマッピング</span>}
+          </button>
+          <button 
+            onClick={() => setActiveTab('overlay')}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+              activeTab === 'overlay' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
+              isSidebarCollapsed && "justify-center px-0"
+            )}
+            title={isSidebarCollapsed ? "オーバーレイ設定" : undefined}
+          >
+            <Layout size={20} />
+            {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">オーバーレイ設定</span>}
+          </button>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+              activeTab === 'settings' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
+              isSidebarCollapsed && "justify-center px-0"
+            )}
+            title={isSidebarCollapsed ? t('config.title') : undefined}
+          >
+            <Settings size={20} />
+            {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">{t('config.title')}</span>}
+            {isConfigInvalid && (
+              <AlertCircle size={14} className="text-amber-500 absolute top-2 right-2 animate-pulse" />
+            )}
+          </button>
+          <button 
+            onClick={() => setActiveTab('about')}
+            className={cn(
+              "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
+              activeTab === 'about' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
+              isSidebarCollapsed && "justify-center px-0"
+            )}
+            title={isSidebarCollapsed ? "About" : undefined}
+          >
+            <Info size={20} />
+            {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">About</span>}
+          </button>
+        </nav>
+
+        <div className={cn("p-4 mt-auto", isSidebarCollapsed && "px-2")}>
+          <button 
+            onClick={toggleLanguage}
+            className={cn(
+              "w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm transition-colors",
+              isSidebarCollapsed && "px-0"
+            )}
+          >
+            <Globe size={16} />
+            {!isSidebarCollapsed && (i18n.language === 'ja' ? 'English' : '日本語')}
+          </button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto bg-[#0f172a] relative">
+        {/* Update Notification Toast */}
+        <div className={cn(
+          "fixed top-6 right-6 z-[100] transition-all duration-500 transform",
+          showUpdateToast && updateInfo ? "translate-x-0 opacity-100" : "translate-x-full opacity-0 pointer-events-none"
+        )}>
+          <div className="bg-blue-600 text-white p-1 rounded-2xl shadow-2xl shadow-blue-900/40 flex items-center gap-4 border border-blue-400/30">
+            <div className="bg-white/20 p-3 rounded-xl">
+              <Download size={24} />
+            </div>
+            <div className="pr-4">
+              <h4 className="font-bold text-sm">アップデートがあります</h4>
+              <p className="text-xs text-blue-100">v{appVersion} → v{updateInfo?.latestVersion}</p>
+              <div className="flex gap-2 mt-2">
+                <button 
+                  onClick={() => window.electron.ipcRenderer.invoke('open-external', updateInfo.url)}
+                  className="bg-white text-blue-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors"
+                >
+                  ダウンロード
+                </button>
+                <button 
+                  onClick={() => setShowUpdateToast(false)}
+                  className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-400 transition-colors"
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-8 max-w-5xl mx-auto">
+          {activeTab === 'dashboard' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <header className="flex justify-between items-end">
+                <div>
+                  <h2 className="text-3xl font-bold text-white mb-2">{t('app.title')}</h2>
+                  <p className="text-slate-400">{t('app.subtitle')}</p>
+                </div>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => handleFetchResults(false)}
+                    disabled={status === 'loading'}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+                  >
+                    {status === 'loading' ? <RefreshCw className="animate-spin" size={20} /> : <Play size={20} />}
+                    {t('operations.fetchRace')}
+                  </button>
+                  <button 
+                    onClick={() => handleFetchResults(true)}
+                    disabled={status === 'loading'}
+                    className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-purple-900/20 active:scale-95"
+                  >
+                    <History size={20} />
+                    {t('operations.fetchOverall')}
+                  </button>
+                  <button 
+                    onClick={handleOpenOverlay}
+                    className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-slate-900/20 active:scale-95"
+                  >
+                    <ExternalLink size={20} />
+                    {t('operations.openOverlay')}
+                  </button>
+                </div>
+              </header>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-2 bg-emerald-500/10 rounded-lg">
+                      <CheckCircle2 className="text-emerald-500" size={24} />
+                    </div>
+                    <span className="text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">Active</span>
+                  </div>
+                  <h3 className="text-slate-400 text-sm font-medium mb-1">内蔵サーバー</h3>
+                  <p className="text-2xl font-bold text-white">Port {serverPort}</p>
+                </div>
+
+                <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                      <Monitor className="text-blue-500" size={24} />
+                    </div>
+                  </div>
+                  <h3 className="text-slate-400 text-sm font-medium mb-1">OBS 接続</h3>
+                  <p className="text-2xl font-bold text-white">{config?.obsIp || '未設定'}</p>
+                </div>
+
+                <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-2 bg-purple-500/10 rounded-lg">
+                      <Settings className="text-purple-500" size={24} />
+                    </div>
+                  </div>
+                  <h3 className="text-slate-400 text-sm font-medium mb-1">Groq API</h3>
+                  <p className="text-2xl font-bold text-white">
+                    {config?.groqApiKey ? '設定済み' : '未設定'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Scores Table */}
+                <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+                  <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <BarChart3 size={20} className="text-blue-500" />
+                      現在のスコア
+                    </h3>
+                    <div className="flex gap-2">
+                      {isEditing ? (
+                        <>
+                          <button 
+                            onClick={handleAddTeam}
+                            className="text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                          >
+                            追加
+                          </button>
+                          <button 
+                            onClick={handleSaveEditedScores}
+                            className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                          >
+                            保存
+                          </button>
+                          <button 
+                            onClick={() => setIsEditing(false)}
+                            className="text-sm text-slate-400 hover:text-slate-300 flex items-center gap-1 transition-colors"
+                          >
+                            キャンセル
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={handleStartEdit}
+                            className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                          >
+                            編集
+                          </button>
+                          <button 
+                            onClick={handleResetScores}
+                            className="text-sm text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                            リセット
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-0">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-800/50 text-slate-400 text-xs uppercase tracking-wider">
+                          <th className="px-6 py-3 font-semibold">チーム名</th>
+                          <th className="px-6 py-3 font-semibold text-right">スコア</th>
+                          {isEditing && <th className="px-6 py-3 font-semibold text-right">操作</th>}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800">
+                        <AnimatePresence mode="popLayout">
+                          {(isEditing ? editingScores : [...scores].sort((a, b) => b.score - a.score)).length > 0 ? (isEditing ? editingScores : [...scores].sort((a, b) => b.score - a.score)).map((team, i) => (
+                            <ScoreItem 
+                              key={team.name || team.team || i}
+                              team={team}
+                              index={i}
+                              isEditing={isEditing}
+                              onRemove={handleRemoveTeam}
+                              onChange={handleScoreChange}
+                              onSetCurrentPlayer={() => {
+                                const newScores = scores.map(t => ({
+                                  ...t,
+                                  isCurrentPlayer: (t.name || t.team) === (team.name || team.team)
+                                }))
+                                handleSaveEditedScores(newScores)
+                              }}
+                            />
+                          )) : (
+                            <motion.tr 
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              key="empty"
+                            >
+                              <td colSpan={isEditing ? 3 : 2} className="px-6 py-12 text-center text-slate-500 italic">
+                                データがありません
+                              </td>
+                            </motion.tr>
+                          )}
+                        </AnimatePresence>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Logs */}
+                <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col">
+                  <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                    <h3 className="font-bold text-lg flex items-center gap-2">
+                      <History size={20} className="text-purple-500" />
+                      アクティビティログ
+                    </h3>
+                  </div>
+                  <div className="p-6 space-y-4 flex-1 overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-slate-700">
+                    {logs.length > 0 ? logs.map((log, i) => (
+                      <div key={i} className="flex gap-4 items-start animate-in fade-in slide-in-from-left-2 duration-300">
+                        <div className={cn(
+                          "w-2 h-2 mt-2 rounded-full shrink-0",
+                          log.type === 'success' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" :
+                          log.type === 'error' ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" :
+                          "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                        )} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-slate-300 break-words">{log.message}</p>
+                          <p className="text-xs text-slate-500">{log.timestamp}</p>
+                        </div>
+                      </div>
+                    )) : (
+                      <p className="text-center text-slate-500 py-8 italic">ログはありません</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'reopen' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-3xl font-bold text-white">dcマネージャー</h2>
+                  <p className="text-slate-400 mt-1">過去のスコア状態を保存・復元できます</p>
+                </div>
+                <button 
+                  onClick={fetchSlots}
+                  className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400"
+                >
+                  <RefreshCw size={20} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 10 }).map((_, i) => {
+                  const slot = slots.find(s => s.slotId === i)
+                  return (
+                    <div key={i} className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col">
+                      <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Slot {i + 1}</span>
+                        {slot && (
+                          <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">
+                            {new Date(slot.timestamp).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-6 flex-1">
+                        {slot ? (
+                          <div className="space-y-4">
+                            <h4 className="font-bold text-lg text-slate-200 truncate">{slot.name}</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                                <div className="text-[10px] text-slate-500 uppercase">チーム数</div>
+                                <div className="text-sm font-bold text-blue-400">{slot.scores.length}</div>
+                              </div>
+                              <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                                <div className="text-[10px] text-slate-500 uppercase">合計点</div>
+                                <div className="text-sm font-bold text-emerald-400">
+                                  {slot.scores.reduce((sum: number, s: any) => sum + s.score, 0)}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="h-full flex flex-col items-center justify-center py-4 text-slate-600">
+                            <Save size={32} className="mb-2 opacity-20" />
+                            <p className="text-sm italic">空のスロット</p>
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4 bg-slate-800/30 border-t border-slate-800 flex gap-2">
+                        {slot ? (
+                          <>
+                            <button 
+                              onClick={() => handleLoadSlot(i)}
+                              className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-blue-900/20"
+                            >
+                              ロード
+                            </button>
+                            <button 
+                              onClick={() => handleSaveSlot(i)}
+                              className="px-3 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded-lg text-sm transition-colors"
+                            >
+                              上書き
+                            </button>
+                          </>
+                        ) : (
+                          <button 
+                            onClick={() => handleSaveSlot(i)}
+                            className="w-full bg-slate-800 hover:bg-slate-700 text-slate-400 py-2 rounded-lg text-sm font-bold transition-colors border border-slate-700 border-dashed"
+                          >
+                            現在の状態を保存
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'mappings' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <header>
+                <h2 className="text-3xl font-bold text-white mb-2">プレイヤーマッピング</h2>
+                <p className="text-slate-400">特定のプレイヤー名を常に特定のチームとして扱います（OCR誤認識対策）</p>
+              </header>
+
+              <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+                <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                  <h3 className="font-bold text-lg flex items-center gap-2">
+                    <Users size={20} className="text-blue-500" />
+                    マッピング一覧
+                  </h3>
+                  <div className="flex gap-2">
+                    {isEditingMappings ? (
+                      <>
+                        <button 
+                          onClick={handleAddMapping}
+                          className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          追加
+                        </button>
+                        <button 
+                          onClick={handleSaveMappings}
+                          className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                        >
+                          <Save size={16} />
+                          保存
+                        </button>
+                        <button 
+                          onClick={() => setIsEditingMappings(false)}
+                          className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          キャンセル
+                        </button>
+                      </>
+                    ) : (
+                      <button 
+                        onClick={handleStartEditMappings}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                      >
+                        編集
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <div className="p-6">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-slate-500 text-sm border-b border-slate-800">
+                        <th className="pb-4 font-medium">プレイヤー名</th>
+                        <th className="pb-4 font-medium">チーム名</th>
+                        {isEditingMappings && <th className="pb-4 font-medium w-16">操作</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {isEditingMappings ? (
+                        editingMappings.map((mapping, index) => (
+                          <tr key={index} className="group">
+                            <td className="py-4 pr-4">
+                              <input 
+                                type="text"
+                                value={mapping.name}
+                                onChange={(e) => handleMappingChange(index, 'name', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                placeholder="プレイヤー名"
+                              />
+                            </td>
+                            <td className="py-4 pr-4">
+                              <input 
+                                type="text"
+                                value={mapping.team}
+                                onChange={(e) => handleMappingChange(index, 'team', e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                placeholder="チーム名"
+                              />
+                            </td>
+                            <td className="py-4">
+                              <button 
+                                onClick={() => handleRemoveMapping(index)}
+                                className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        Object.entries(playerMappings).length > 0 ? (
+                          Object.entries(playerMappings).map(([name, team]) => (
+                            <tr key={name} className="group">
+                              <td className="py-4 text-white font-medium">{name}</td>
+                              <td className="py-4">
+                                <span className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full text-sm font-medium border border-blue-500/20">
+                                  {team}
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={2} className="py-12 text-center text-slate-500">
+                              マッピングが設定されていません
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'overlay' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <header>
+                <h2 className="text-3xl font-bold text-white mb-2">オーバーレイ設定</h2>
+                <p className="text-slate-400">配信画面に表示するスコアボードの外観をカスタマイズします</p>
+              </header>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div className="bg-[#1e293b] rounded-3xl p-8 border border-slate-800 shadow-xl">
+                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                      <Layout className="text-blue-500" size={24} />
+                      表示設定
+                    </h3>
+                    <form onSubmit={handleSaveConfig} className="space-y-6">
+                      <Toggle 
+                        name="keepScoreOnRestart"
+                        defaultChecked={config?.scoreSettings?.keepScoreOnRestart ?? true}
+                        label="アプリ再起動時にスコアを保持する"
+                        help="無効にすると、アプリを閉じて再度開いた時にスコアがリセットされます"
+                      />
+                      <Toggle 
+                        name="showRemainingRaces"
+                        defaultChecked={config?.showRemainingRaces ?? true}
+                        label="残りレース数を表示"
+                        help="1位のチームの横に残りレース数を表示します"
+                      />
+
+                      <div className="pt-4">
+                        <button 
+                          type="submit"
+                          className="w-full bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+                        >
+                          設定を保存
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="bg-[#1e293b] rounded-3xl p-8 border border-slate-800 shadow-xl">
+                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                      <Monitor className="text-blue-500" size={24} />
+                      プレビュー & ツール
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="aspect-[4/3] bg-[#0f172a] rounded-2xl border border-slate-700 relative overflow-hidden group">
+                        <iframe 
+                          src={`http://localhost:${serverPort}/?overlay=true`}
+                          className="w-full h-full border-none pointer-events-none"
+                          title="Overlay Preview"
+                        />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <button 
+                            onClick={handleOpenOverlay}
+                            className="bg-white text-slate-900 px-4 py-2 rounded-lg font-bold flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform"
+                          >
+                            <ExternalLink size={18} />
+                            ブラウザで開く
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4 bg-blue-600/10 border border-blue-500/20 rounded-xl">
+                        <p className="text-sm text-blue-300 leading-relaxed">
+                          <strong>OBSへの追加方法:</strong><br/>
+                          ブラウザソースを追加し、URLに <code>http://localhost:{serverPort}/</code> を入力してください。幅 400px、高さ 600px 程度が推奨です。
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'settings' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <header>
+                <h2 className="text-3xl font-bold text-white mb-2">{t('config.title')}</h2>
+                <p className="text-slate-400">アプリケーションの動作と外観を設定します</p>
+              </header>
+
+              {updateInfo && (
+                <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-6 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-600 rounded-xl">
+                      <Download className="text-white" size={24} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white">新しいバージョンが利用可能です</h3>
+                      <p className="text-blue-400 text-sm">v{appVersion} → v{updateInfo.latestVersion}</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => window.electron.ipcRenderer.invoke('open-external', updateInfo.url)}
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
+                  >
+                    ダウンロード
+                  </button>
+                </div>
+              )}
+
+              <form onSubmit={handleSaveConfig} className="space-y-8 pb-12 relative">
+                <div className="sticky top-0 z-10 flex justify-between items-center bg-[#0f172a]/80 backdrop-blur-md p-4 mb-4 rounded-xl border border-slate-800 shadow-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "w-3 h-3 rounded-full animate-pulse",
+                      isConfigInvalid ? "bg-amber-500" : "bg-emerald-500"
+                    )} />
+                    <span className="text-sm font-medium text-slate-300">
+                      {isConfigInvalid ? "未完了の設定があります" : "設定はすべて完了しています"}
+                    </span>
+                  </div>
+                  <button 
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/40 active:scale-95 flex items-center gap-2"
+                  >
+                    <Save size={18} />
+                    {t('config.saveButton')}
+                  </button>
+                </div>
+
+                <section className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6">
+                  <h3 className="text-lg font-bold flex items-center gap-2 text-blue-400">
+                    <Monitor size={20} />
+                    OBS WebSocket 設定
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-400">{t('config.obsIp')}</label>
+                      <input 
+                        name="obsIp"
+                        type="text" 
+                        defaultValue={config?.obsIp}
+                        className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-400">{t('config.obsPort')}</label>
+                      <input 
+                        name="obsPort"
+                        type="number" 
+                        defaultValue={config?.obsPort}
+                        className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-400">{t('config.obsPassword')}</label>
+                    <input 
+                      name="obsPassword"
+                      type="password" 
+                      defaultValue={config?.obsPassword}
+                      placeholder={t('config.obsPasswordPlaceholder')}
+                      className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-400">{t('config.obsSourceName')}</label>
+                    <input 
+                      name="obsSourceName"
+                      type="text" 
+                      defaultValue={config?.obsSourceName}
+                      placeholder={t('config.obsSourceNamePlaceholder')}
+                      className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                    />
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => window.electron.ipcRenderer.invoke('refresh-obs-browser-sources')}
+                    className="w-full bg-slate-800/50 hover:bg-slate-800 text-slate-300 py-3 rounded-xl font-medium transition-all border border-slate-700"
+                  >
+                    OBSブラウザソースを強制リフレッシュ
+                  </button>
+                </section>
+
+                <section className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6">
+                  <h3 className="text-lg font-bold flex items-center gap-2 text-green-400">
+                    <Zap size={20} />
+                    AI 解析設定 (Groq)
+                  </h3>
+
+                  <input type="hidden" name="aiProvider" value="groq" />
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-slate-400">Groq APIキー</label>
+                      <input 
+                        name="groqApiKey"
+                        type="password" 
+                        defaultValue={config?.groqApiKey}
+                        placeholder="gsk-xxxxxxxxxxxxxxxx"
+                        className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all"
+                      />
+                      <p className="text-xs text-slate-500 italic">
+                        ※ 現在は爆速かつ無料で利用可能な Groq (Llama 4 Scout) のみを使用します。
+                      </p>
+                    </div>
+
+                    <div className="border border-slate-700 rounded-xl overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => setShowGroqInstructions(!showGroqInstructions)}
+                        className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 transition-colors text-sm font-medium text-slate-300"
+                      >
+                        <span>Groq APIキーを取得する方法</span>
+                        <ChevronRight 
+                          size={16} 
+                          className={cn("transition-transform duration-200", showGroqInstructions && "rotate-90")} 
+                        />
+                      </button>
+                      <AnimatePresence>
+                        {showGroqInstructions && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="p-4 bg-slate-900 border-t border-slate-800 space-y-3 text-sm text-slate-400">
+                              <p className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">1</span>
+                                <span className="flex-1">
+                                  <a 
+                                    href="https://console.groq.com/keys" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-400 hover:underline inline-flex items-center gap-1"
+                                  >
+                                    Groq Cloud Console <ExternalLink size={12} />
+                                  </a>
+                                  にアクセスします。
+                                </span>
+                              </p>
+                              <p className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">2</span>
+                                <span className="flex-1">Googleアカウント、またはメールアドレスでサインアップ/ログインします。</span>
+                              </p>
+                              <p className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">3</span>
+                                <span className="flex-1">「Create API Key」ボタンを押します。</span>
+                              </p>
+                              <p className="flex gap-2">
+                                <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">4</span>
+                                <span className="flex-1">適当な名前（例: MK8DX）を付けて作成し、表示されたコード（gsk-...）をコピーして上の入力欄に貼り付けます。</span>
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                </section>
+
+                <div className="flex justify-end pt-4">
+                  <button 
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/40 active:scale-95 flex items-center gap-2"
+                  >
+                    <Save size={20} />
+                    {t('config.saveButton')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {activeTab === 'about' && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto text-center space-y-8 py-12">
+              <div className="w-24 h-24 bg-blue-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-900/40 mx-auto mb-8">
+                <Monitor className="text-white" size={48} />
+              </div>
+              <h2 className="text-4xl font-bold text-white">Grosoku-GUI</h2>
+              <p className="text-xl text-slate-400 leading-relaxed">
+                {t('app.subtitle')}
+              </p>
+              <div className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl text-left space-y-4">
+                <h3 className="font-bold text-lg border-b border-slate-800 pb-2 mb-4">使用方法</h3>
+                <div className="space-y-4 text-slate-300" dangerouslySetInnerHTML={{ __html: t('usage.steps') }} />
+              </div>
+              <p className="text-slate-500 pt-8">
+                {t('footer.madeWith')}
+              </p>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
+  )
+}
+
+export default App

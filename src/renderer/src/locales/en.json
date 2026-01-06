@@ -1,0 +1,76 @@
+{
+  "app": {
+    "title": "Grosoku-GUI",
+    "subtitle": "Mario Kart 8 Deluxe Race Result Automatic Acquisition & Analysis Application"
+  },
+  "theme": {
+    "toggle": "Toggle Dark Mode"
+  },
+  "config": {
+    "title": "Settings",
+    "obsIp": "OBS IP Address:",
+    "obsPort": "OBS WebSocket Port:",
+    "obsPassword": "OBS WebSocket Password:",
+    "obsPasswordPlaceholder": "Password (if set)",
+    "obsSourceName": "OBS Source Name:",
+    "obsSourceNamePlaceholder": "Video Capture Device",
+    "geminiApiKey": "Gemini API Key:",
+    "geminiApiKeyPlaceholder": "AIzaSy...",
+    "geminiModel": "Gemini Model:",
+    "saveButton": "Save Settings",
+    "validationError": "OBS IP address, port, source name, and Gemini API key are required"
+  },
+  "operations": {
+    "title": "Operations",
+    "fetchRace": "Fetch Race Results(F1)",
+    "fetchOverall": "Get Team Total Score(F2)",
+    "openOverlay": "🖥️ Open Overlay",
+    "editScores": "⚙️ Edit Scores",
+    "resetScores": "🗑️ Reset Scores",
+    "testConnection": "🔗 Test Connection",
+    "checkUpdates": "🔄 Check for Updates",
+    "reopenManager": "🔄 dc Manager"
+  },
+  "scoreSettings": {
+    "title": "⚙️ Score Settings",
+    "keepScoresOnRestart": "Keep scores on app restart",
+    "keepScoresHelp": "When turned off, scores will be automatically reset when the app starts"
+  },
+  "overlaySettings": {
+    "title": "🖥️ Overlay Settings",
+    "showRemainingRaces": "Show remaining races on overlay",
+    "showRemainingRacesHelp": "When turned off, remaining race count will not be displayed on the overlay",
+    "scoreEffectColor": "Score Effect Color:",
+    "scoreEffectColorHelp": "Customize the color of the flash effect when team scores increase",
+    "currentPlayerColor": "Current Player Color:",
+    "currentPlayerColorHelp": "Customize the border color to distinguish your own team"
+  },
+  "usage": {
+    "title": "💡 How to Use",
+    "steps": "1. Enter and save the settings above<br>2. Click 'Open Overlay' to open browser<br>3. Set that URL as OBS browser source<br>4. Click 'Fetch Race Results' button on the race result screen"
+  },
+  "footer": {
+    "madeWith": "Made with ❤️ by eito54"
+  },
+  "language": {
+    "select": "Select Language",
+    "japanese": "日本語",
+    "english": "English"
+  },
+  "messages": {
+    "configLoadError": "Failed to load configuration",
+    "configSaved": "Configuration saved",
+    "configSaveError": "Failed to save configuration",
+    "connecting": "Connecting...",
+    "fetchingResults": "Fetching results...",
+    "success": "Success",
+    "error": "Error",
+    "connectionTest": "Connection Test",
+    "testPassed": "Test completed",
+    "testFailed": "Test failed"
+  },
+  "theme": {
+    "toggle": "Toggle Dark Mode",
+    "toggleLight": "Switch to Light Mode"
+  }
+}
