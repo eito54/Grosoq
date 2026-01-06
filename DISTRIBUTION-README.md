@@ -1,4 +1,4 @@
-# 🚀 Gemisoku-GUI - 配布版
+# 🚀 Grosoq - 配布版
 
 このElectronアプリは、環境のないユーザーでもMK8DXのレース結果を自動取得できるスタンドアロン版です。
 
@@ -33,9 +33,9 @@ pnpm run gui:build
 
 ```
 dist-gui/
-├── Gemisoku-GUI Setup 0.1.0.exe  (Windows)
-├── Gemisoku-GUI-0.1.0.dmg        (macOS)
-└── Gemisoku-GUI-0.1.0.AppImage   (Linux)
+├── Grosoq Setup 0.1.0.exe  (Windows)
+├── Grosoq-0.1.0.dmg        (macOS)
+└── Grosoq-0.1.0.AppImage   (Linux)
 ```
 
 ## 🎯 配布版の特徴

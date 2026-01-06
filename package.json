@@ -83,7 +83,7 @@
       {
         "provider": "github",
         "owner": "eito54",
-        "repo": "Gemisoku-GUI",
+        "repo": "grosoq",
         "releaseType": "release"
       }
     ],
@@ -95,7 +95,7 @@
         {
           "provider": "github",
           "owner": "eito54",
-          "repo": "Gemisoku-GUI"
+          "repo": "grosoq"
         }
       ]
     },

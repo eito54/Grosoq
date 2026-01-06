@@ -18,6 +18,8 @@ import {
   Palette,
   Trophy,
   Download,
+  FileText,
+  X,
   ChevronLeft,
   ChevronRight,
   Layout
@@ -211,6 +213,7 @@ function App(): JSX.Element {
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [showUpdateToast, setShowUpdateToast] = useState(false)
+  const [showReleaseNotes, setShowReleaseNotes] = useState(false)
   const [showGroqInstructions, setShowGroqInstructions] = useState(false)
   const [updateProgress, setUpdateProgress] = useState<number>(0)
   const [isUpdateDownloaded, setIsUpdateDownloaded] = useState(false)
@@ -362,6 +365,7 @@ function App(): JSX.Element {
         setUpdateInfo({
           hasUpdate: true,
           latestVersion: info.version,
+          releaseNotes: info.releaseNotes,
           isAutoUpdater: true
         })
         setShowUpdateToast(true)
@@ -1210,7 +1214,18 @@ function App(): JSX.Element {
             </div>
             <div className="pr-4">
               <h4 className="font-bold text-sm">アップデートがあります</h4>
-              <p className="text-xs text-blue-100">v{appVersion} → v{updateInfo?.latestVersion}</p>
+              <p className="text-xs text-blue-100 mb-2">v{appVersion} → v{updateInfo?.latestVersion}</p>
+              
+              {updateInfo?.releaseNotes && (
+                <button 
+                  onClick={() => setShowReleaseNotes(true)}
+                  className="text-[10px] bg-blue-700 hover:bg-blue-800 text-blue-100 px-2 py-0.5 rounded transition-colors mb-2 flex items-center gap-1"
+                >
+                  <FileText size={10} />
+                  アップデート内容を確認
+                </button>
+              )}
+
               <div className="flex gap-2 mt-2">
                 {isUpdateDownloaded ? (
                   <button 
@@ -1251,6 +1266,79 @@ function App(): JSX.Element {
             </div>
           </div>
         </div>
+
+        {/* Release Notes Modal */}
+        <AnimatePresence>
+          {showReleaseNotes && updateInfo?.releaseNotes && (
+            <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowReleaseNotes(false)}
+                className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="relative w-full max-w-xl bg-[#1e293b] border border-slate-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+              >
+                <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-800/50">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-600/20 p-2 rounded-xl text-blue-400">
+                      <FileText size={20} />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-white">アップデート内容</h3>
+                      <p className="text-xs text-slate-400">Ver {updateInfo.latestVersion} の新機能と改善</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowReleaseNotes(false)}
+                    className="p-2 hover:bg-slate-700 rounded-xl text-slate-400 hover:text-white transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                
+                <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-[#0f172a]">
+                  <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
+                    {typeof updateInfo.releaseNotes === 'string' ? (
+                      <div dangerouslySetInnerHTML={{ 
+                        __html: updateInfo.releaseNotes
+                          .replace(/\n/g, '<br/>')
+                          .replace(/### (.*)/g, '<h3 class="text-white font-bold text-lg mt-4 mb-2">$1</h3>')
+                          .replace(/## (.*)/g, '<h2 class="text-white font-bold text-xl mt-6 mb-3">$1</h2>')
+                          .replace(/- (.*)/g, '<div class="flex gap-2 my-1"><span class="text-blue-400">•</span><span>$1</span></div>')
+                      }} />
+                    ) : Array.isArray(updateInfo.releaseNotes) ? (
+                      <div className="space-y-6">
+                        {updateInfo.releaseNotes.map((note: any, i: number) => (
+                          <div key={i} className="border-b border-slate-800 pb-4 last:border-0">
+                            {note.version && <div className="text-blue-400 font-bold mb-2">v{note.version}</div>}
+                            <div dangerouslySetInnerHTML={{ __html: note.note }} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-slate-500 italic">リリースノートはありません。</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-6 bg-slate-800/30 border-t border-slate-800 flex justify-end">
+                  <button 
+                    onClick={() => setShowReleaseNotes(false)}
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold transition-all active:scale-95"
+                  >
+                    閉じる
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         <div className="p-8 max-w-5xl mx-auto">
           {activeTab === 'dashboard' && (

@@ -168,6 +168,7 @@ export function registerIpcHandlers(
         try {
           const result = await autoUpdater.checkForUpdates()
           const latestVersion = result?.updateInfo.version || currentVersion
+          const releaseNotes = result?.updateInfo.releaseNotes
           
           console.log('Latest version from autoUpdater:', latestVersion)
           const hasUpdate = compareVersions(latestVersion, currentVersion) > 0
@@ -176,12 +177,13 @@ export function registerIpcHandlers(
             hasUpdate: hasUpdate,
             latestVersion: latestVersion,
             currentVersion: currentVersion,
+            releaseNotes: releaseNotes,
             isAutoUpdater: true
           }
         } catch (updaterError: any) {
           console.warn('autoUpdater failed, falling back to GitHub API check:', updaterError.message)
           // autoUpdater が失敗した（latest.yml がない等）場合のフォールバック
-          const latestRelease = await makeHttpRequest('https://api.github.com/repos/eito54/Gemisoku-GUI/releases/latest', {
+          const latestRelease = await makeHttpRequest('https://api.github.com/repos/eito54/grosoq/releases/latest', {
             headers: { 'User-Agent': 'Grosoq' }
           })
           
@@ -197,13 +199,14 @@ export function registerIpcHandlers(
             hasUpdate: compareVersions(latestVersion, currentVersion) > 0,
             latestVersion,
             currentVersion,
+            releaseNotes: latestRelease.body,
             url: latestRelease.html_url,
             isAutoUpdater: false
           }
         }
       } else {
         console.log('App is NOT packaged, using GitHub API mock')
-        const latestRelease = await makeHttpRequest('https://api.github.com/repos/eito54/Gemisoku-GUI/releases/latest', {
+        const latestRelease = await makeHttpRequest('https://api.github.com/repos/eito54/grosoq/releases/latest', {
           headers: { 'User-Agent': 'Grosoq' }
         })
         
@@ -220,6 +223,7 @@ export function registerIpcHandlers(
           hasUpdate: hasUpdate,
           latestVersion,
           currentVersion,
+          releaseNotes: latestRelease.body,
           url: latestRelease.html_url,
           isAutoUpdater: false
         }

@@ -1,9 +1,9 @@
 <div align="center">
-  <img src="./assets/logo.jpeg" alt="Gemisoku-GUI Logo" width="120" height="120"/>
-  <h1>🏎️ Gemisoku-GUI</h1>
+  <img src="./assets/logo.jpeg" alt="Grosoq Logo" width="120" height="120"/>
+  <h1>🏎️ Grosoq</h1>
   <p><strong>マリオカート8デラックス レース結果自動取得・分析GUIアプリケーション</strong></p>
   
-  [![GitHub](https://img.shields.io/github/license/eito54/Gemisoku)](LICENSE)
+  [![GitHub](https://img.shields.io/github/license/eito54/Grosoq)](LICENSE)
   [![Electron](https://img.shields.io/badge/Electron-Latest-blue)](https://www.electronjs.org/)
   [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
   [![Gemini](https://img.shields.io/badge/Gemini-AI-orange)](https://ai.google.dev/)
@@ -11,14 +11,14 @@
 
 ---
 
-![Gemisoku-GUI Screenshot](./assets/ex.gif)
+![Grosoq Screenshot](./assets/ex.gif)
 
-**Gemisoku-GUI**は、マリオカート8デラックス（MK8DX）のレース結果を自動的に取得・分析し、配信オーバーレイとして表示するデスクトップGUIアプリケーションです。
+**Grosoq**は、マリオカート8デラックス（MK8DX）のレース結果を自動的に取得・分析し、配信オーバーレイとして表示するデスクトップGUIアプリケーションです。
 OBS配信とAI画像解析を組み合わせ、簡単な操作でリアルタイムスコア表示を実現します。
 
-## 📖 Gemisoku-GUIとは
+## 📖 Grosoqとは
 
-**Gemisoku-GUI**は、マリオカート8デラックス（MK8DX）の配信者向けに開発されたデスクトップアプリケーションです。
+**Grosoq**は、マリオカート8デラックス（MK8DX）の配信者向けに開発されたデスクトップアプリケーションです。
 レース結果画面を自動的に解析し、チーム別スコアをリアルタイムで配信オーバーレイに表示します。
 
 ### 🌟 主な特徴
@@ -80,19 +80,19 @@ OBS配信とAI画像解析を組み合わせ、簡単な操作でリアルタイ
 
 #### **方法1: 実行ファイル版（推奨）**
 1. **ダウンロード**
-   - [Releases](https://github.com/eito54/Gemisoku-GUI/releases/latest)から最新版の`Gemisoku-GUI-Setup.exe`をダウンロード
+   - [Releases](https://github.com/eito54/Grosoq/releases/latest)から最新版の`Grosoq-Setup.exe`をダウンロード
    
 2. **インストール**
    - ダウンロードしたファイルを実行してインストール
    
 3. **初回起動**
-   - デスクトップの「Gemisoku-GUI」アイコンをダブルクリック
+   - デスクトップの「Grosoq」アイコンをダブルクリック
 
 #### **方法2: ソースコード版（開発者向け）**
 ```bash
 # リポジトリをクローン
-git clone https://github.com/eito54/Gemisoku-GUI
-cd Gemisoku-GUI
+git clone https://github.com/eito54/Grosoq
+cd Grosoq
 
 # 依存関係をインストール
 npm install
@@ -112,7 +112,7 @@ npm run dev
    - ポート番号: `4455`（デフォルト）
    - パスワード: 設定する場合は任意の文字列
 
-2. **Gemisoku-GUIで設定**
+2. **Grosoqで設定**
    - アプリ起動後、設定画面で以下を入力：
      - **OBS IPアドレス**: `localhost`（同一PC）または OBSのIPアドレス
      - **ポート番号**: `4455`（デフォルト）
@@ -127,7 +127,7 @@ npm run dev
    - 生成されたAPIキーをコピー
 
 2. **アプリに設定**
-   - Gemisoku-GUIの設定画面で「Gemini API キー」にペースト
+   - Grosoqの設定画面で「Gemini API キー」にペースト
    - 「設定を保存」をクリック
 
 #### **3. OBSソース設定**
@@ -136,12 +136,12 @@ npm run dev
    - Nintendo Switchの画面が映ることを確認
 
 2. **ソース名を確認**
-   - OBSのソース一覧で表示される名前をGemisoku-GUIの設定に入力(「映像キャプチャデバイス」「ウィンドウキャプチャ」等、「映像キャプチャデバイス1」などの番号が振られている場合はそれも記述)
+   - OBSのソース一覧で表示される名前をGrosoqの設定に入力(「映像キャプチャデバイス」「ウィンドウキャプチャ」等、「映像キャプチャデバイス1」などの番号が振られている場合はそれも記述)
 
 ### ✅ 動作確認
 
 1. **接続テスト**
-   - Gemisoku-GUIで「接続テスト」ボタンをクリック
+   - Grosoqで「接続テスト」ボタンをクリック
    - 「✅ 接続成功」が表示されれば設定完了
 
 2. **スクリーンショット確認**
@@ -149,23 +149,23 @@ npm run dev
    - 「レース結果を取得」をテストクリック
    - エラーが出なければ設定成功
 
-## 🎮 Gemisoku-GUI 使い方ガイド
+## 🎮 Grosoq 使い方ガイド
 
 ### **STEP 1: アプリ起動とオーバーレイ設定**
 
-#### **1-1. Gemisoku-GUIを起動**
-- デスクトップの「Gemisoku-GUI」アイコンをダブルクリック
+#### **1-1. Grosoqを起動**
+- デスクトップの「Grosoq」アイコンをダブルクリック
 - または `start-gui.bat` ファイルを実行
 
 #### **1-2. オーバーレイをOBSに設定**
 1. **オーバーレイURLを取得**
-   - Gemisoku-GUIで「🖥️ オーバーレイを開く」ボタンをクリック
+   - Grosoqで「🖥️ オーバーレイを開く」ボタンをクリック
    - ブラウザが開き、オーバーレイ画面が表示される
    - URLをコピー
 
 2. **OBSにブラウザソースを追加**
    - OBS → ソース → 「+」→ 「ブラウザ」
-   - 名前: 「Gemisoku オーバーレイ」（任意）
+   - 名前: 「Grosoq オーバーレイ」（任意）
    - URL: コピーしたURLを貼り付け
    - 幅: `800`、高さ: `600`（お好みで調整）
    - 「OK」をクリック
@@ -182,7 +182,7 @@ npm run dev
    - 順位と得点が完全に表示されるまで待つ
 
 2. **結果を取得**
-   - Gemisoku-GUIで「📊 レース結果を取得」ボタンをクリック
+   - Grosoqで「📊 レース結果を取得」ボタンをクリック
    - AIが自動的に結果を解析してオーバーレイに表示
 
 3. **結果の確認**
@@ -195,7 +195,7 @@ npm run dev
    - 全プレイヤーの累積得点が見える状態にする
 
 2. **総合結果を取得**
-   - Gemisoku-GUIで「🏆 チーム合計点を取得」ボタンをクリック
+   - Grosoqで「🏆 チーム合計点を取得」ボタンをクリック
    - 全体の累積スコアがオーバーレイに反映される
 
 ### **STEP 3: スコア管理**
@@ -254,7 +254,7 @@ npm run dev
 
 3. **OBSの再起動**
    - OBSを完全に終了して再起動
-   - Gemisoku-GUIでもう一度接続テスト
+   - Grosoqでもう一度接続テスト
 
 #### **🔴 「スクリーンショット取得失敗」が出る場合**
 1. **ソース名を確認**
@@ -290,13 +290,13 @@ npm run dev
 
 2. **ポート確認**
    - 他のアプリが3000番ポートを使用していないか確認
-   - Gemisoku-GUIのステータス表示を確認
+   - Grosoqのステータス表示を確認
 
 #### **🔴 「ログファイルが見つからない」場合**
 1. **ログファイルの場所を確認**
-   - Windows: `%APPDATA%/gemisoku-gui/logs/`
-   - macOS: `~/Library/Application Support/gemisoku-gui/logs/`
-   - Linux: `~/.config/gemisoku-gui/logs/`
+   - Windows: `%APPDATA%/grosoq/logs/`
+   - macOS: `~/Library/Application Support/grosoq/logs/`
+   - Linux: `~/.config/grosoq/logs/`
 
 2. **権限を確認**
    - アプリケーションがログファイルを作成する権限があるか確認
@@ -328,7 +328,7 @@ npm run dev
 ## 💡 よくある質問 (FAQ)
 
 **Q: 料金はかかりますか？**
-A: Gemisoku-GUI自体は無料です。Google Gemini APIも無料枠内で使用できます。
+A: Grosoq自体は無料です。Google Gemini APIも無料枠内で使用できます。
 
 **Q: 他の配信ソフトでも使えますか？**
 A: 現在はOBS Studioのみ対応しています。
@@ -356,8 +356,8 @@ A: はい。新しいバージョンが利用可能になると自動的に通�
 
 ## 📞 サポート・お問い合わせ
 
-- **バグ報告**: [GitHub Issues](https://github.com/eito54/Gemisoku-GUI/issues)で報告してください
-- **機能要望**: [GitHub Discussions](https://github.com/eito54/Gemisoku-GUI/discussions)でご提案ください
+- **バグ報告**: [GitHub Issues](https://github.com/eito54/Grosoq/issues)で報告してください
+- **機能要望**: [GitHub Discussions](https://github.com/eito54/Grosoq/discussions)でご提案ください
 - **使い方相談**: GitHubのDiscussionsで質問できます
 
 ## 📚 開発者向けドキュメント
