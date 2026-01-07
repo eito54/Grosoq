@@ -52,13 +52,13 @@ export class EmbeddedServer {
     ]
 
     let staticPath = possibleStaticPaths.find(p => fs.existsSync(p)) || possibleStaticPaths[0]
-    
+
     console.log(`[EmbeddedServer] Serving static files from: ${staticPath}`)
 
     this.app.use(express.static(staticPath))
     this.app.use(express.json({ limit: '50mb' }))
     this.app.use(express.urlencoded({ extended: true, limit: '50mb' }))
-    
+
     this.app.use((_req: Request, res: Response, next: NextFunction) => {
       res.header('Access-Control-Allow-Origin', '*')
       res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
@@ -81,14 +81,14 @@ export class EmbeddedServer {
         path.join(path.dirname(app.getPath('exe')), 'resources/app/public/overlay/index.html'),
         path.join(path.dirname(app.getPath('exe')), 'resources/app.asar/public/overlay/index.html')
       ]
-      
+
       console.log(`[EmbeddedServer] Request for overlay: ${req.url}`)
       const overlayPath = possiblePaths.find(p => {
         const exists = fs.existsSync(p)
         if (exists) console.log(`[EmbeddedServer] Found overlay at: ${p}`)
         return exists
       })
-      
+
       if (overlayPath) {
         res.sendFile(overlayPath)
       } else {
@@ -124,14 +124,14 @@ export class EmbeddedServer {
       try {
         const scoresPath = this.getScoresPath()
         const metaPath = path.join(path.dirname(scoresPath), 'scores-meta.json')
-        
+
         let scores = []
         let isOverallUpdate = false
-        
+
         if (fs.existsSync(scoresPath)) {
           scores = JSON.parse(fs.readFileSync(scoresPath, 'utf8'))
         }
-        
+
         if (fs.existsSync(metaPath)) {
           try {
             const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
@@ -139,13 +139,13 @@ export class EmbeddedServer {
             if (isOverallUpdate) {
               fs.writeFileSync(metaPath, JSON.stringify({ isOverallUpdate: false }, null, 2))
             }
-          } catch (e) {}
+          } catch (e) { }
         }
-        
+
         const config = this.configManager.getConfig()
         const totalScores = scores.reduce((sum: number, team: any) => sum + (team.score || 0), 0)
         const remainingRaces = Math.max(0, Math.floor((984 - totalScores) / 82))
-        
+
         res.json({
           scores,
           isOverallUpdate,
@@ -163,10 +163,10 @@ export class EmbeddedServer {
         const metaPath = path.join(path.dirname(scoresPath), 'scores-meta.json')
         const scores = req.body
         const isOverallUpdate = req.query.isOverallUpdate === 'true'
-        
+
         const scoreDir = path.dirname(scoresPath)
         if (!fs.existsSync(scoreDir)) fs.mkdirSync(scoreDir, { recursive: true })
-        
+
         // 自チーム（マイプレイヤー）の手動設定を記憶
         const currentPlayer = Array.isArray(scores) ? scores.find((s: any) => s.isCurrentPlayer) : null
         if (currentPlayer) {
@@ -181,7 +181,7 @@ export class EmbeddedServer {
         if (isOverallUpdate) {
           fs.writeFileSync(metaPath, JSON.stringify({ isOverallUpdate: true }, null, 2))
         }
-        
+
         this.broadcastScoreUpdate()
         res.json({ success: true })
       } catch (error: any) {
@@ -193,13 +193,13 @@ export class EmbeddedServer {
       try {
         const scoresPath = this.getScoresPath()
         const mappingPath = this.getPlayerMappingPath()
-        
+
         if (fs.existsSync(scoresPath)) fs.writeFileSync(scoresPath, JSON.stringify([], null, 2))
         if (fs.existsSync(mappingPath)) fs.writeFileSync(mappingPath, JSON.stringify({}, null, 2))
-        
+
         const metaPath = path.join(path.dirname(scoresPath), 'scores-meta.json')
         if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath)
-        
+
         this.broadcastScoreUpdate()
         res.json({ success: true })
       } catch (error: any) {
@@ -258,7 +258,7 @@ export class EmbeddedServer {
         if (fs.existsSync(slotsPath)) {
           slots = JSON.parse(fs.readFileSync(slotsPath, 'utf8'))
         }
-        
+
         const newSlot = req.body
         const index = slots.findIndex((s: any) => s.slotId === newSlot.slotId)
         if (index !== -1) {
@@ -266,10 +266,28 @@ export class EmbeddedServer {
         } else {
           slots.push(newSlot)
         }
-        
+
         fs.writeFileSync(slotsPath, JSON.stringify(slots, null, 2))
         this.broadcastScoreUpdate()
         res.json({ success: true })
+      } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message })
+      }
+    })
+
+    this.app.delete('/api/reopen-slots/:slotId', (req: Request, res: Response) => {
+      try {
+        const slotId = parseInt(req.params.slotId)
+        const slotsPath = this.getReopenSlotsPath()
+        if (fs.existsSync(slotsPath)) {
+          let slots = JSON.parse(fs.readFileSync(slotsPath, 'utf8'))
+          slots = slots.filter((s: any) => s.slotId !== slotId)
+          fs.writeFileSync(slotsPath, JSON.stringify(slots, null, 2))
+          this.broadcastScoreUpdate()
+          res.json({ success: true })
+        } else {
+          res.json({ success: true })
+        }
       } catch (error: any) {
         res.status(500).json({ success: false, error: error.message })
       }
@@ -319,7 +337,7 @@ export class EmbeddedServer {
         const mappingPath = this.getPlayerMappingPath()
         const mappingDir = path.dirname(mappingPath)
         if (!fs.existsSync(mappingDir)) fs.mkdirSync(mappingDir, { recursive: true })
-        
+
         fs.writeFileSync(mappingPath, JSON.stringify(req.body, null, 2))
         this.broadcastScoreUpdate()
         res.json({ success: true })
@@ -337,7 +355,7 @@ export class EmbeddedServer {
 
   public start(port: number = 3001): Promise<void> {
     this.port = port
-    
+
     // Check if we should reset scores on start
     const config = this.configManager.getConfig()
     if (config.scoreSettings && config.scoreSettings.keepScoreOnRestart === false) {

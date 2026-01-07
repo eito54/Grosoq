@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, JSX } from 'react'
 import {
   Settings,
   Play,
@@ -523,6 +523,7 @@ function App(): JSX.Element {
   const [slotNameInput, setSlotNameInput] = useState('')
   const [slotModalType, setSlotModalType] = useState<'load' | 'add' | 'delete'>('load')
 
+
   const handleCloseWhatsNew = async () => {
     setShowWhatsNew(false)
     if (window.electron && window.electron.ipcRenderer) {
@@ -719,7 +720,14 @@ function App(): JSX.Element {
       setStatus('error')
       addLog(`通信エラー: ${error.message}`, 'error')
     }
-  }, [status, addLog, serverPort, loadScores, loadPlayerMappings])
+  }, [status, scores, addLog, serverPort, loadScores, loadPlayerMappings])
+
+  // Ref for handlers used in Electron listeners to avoid stale closures
+  const handleFetchResultsRef = React.useRef(handleFetchResults)
+  useEffect(() => {
+    handleFetchResultsRef.current = handleFetchResults
+  }, [handleFetchResults])
+
 
   const handleStartEdit = () => {
     setEditingScores(JSON.parse(JSON.stringify(scores)))
@@ -1150,20 +1158,17 @@ function App(): JSX.Element {
       // 初回のみアップデートチェック
       handleCheckUpdate(true)
 
-      // @ts-ignore
       window.electron.ipcRenderer.invoke('get-server-port').then((port: number) => {
         setServerPort(port)
         addLog(`内蔵サーバーがポート ${port} で待機中です`, 'success')
       })
 
       // グローバルショートカットのリスナー
-      // @ts-ignore
       const removeFetchListener = window.electron.ipcRenderer.on('trigger-fetch-race-results', () => {
-        handleFetchResults(false)
+        handleFetchResultsRef.current(false)
       })
-      // @ts-ignore
       const removeOverallListener = window.electron.ipcRenderer.on('trigger-fetch-overall-scores', () => {
-        handleFetchResults(true)
+        handleFetchResultsRef.current(true)
       })
 
       // 自動アップデート関連のリスナー
