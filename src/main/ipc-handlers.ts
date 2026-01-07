@@ -129,18 +129,28 @@ export function registerIpcHandlers(
       // リリースノートが空の場合、GitHub APIから取得を試みる
       if (!notes) {
         console.log(`Release notes missing for v${currentVersion}, fetching from GitHub...`)
-        try {
-          const release = await makeHttpRequest(`https://api.github.com/repos/eito54/grosoq/releases/tags/v${currentVersion}`, {
-            headers: { 'User-Agent': 'Grosoq' }
-          })
-          if (release && release.body) {
-            notes = release.body
-            // 次回のために保存
-            config.lastReleaseNotes = notes
-            await configManager.saveConfig(config)
+
+        // タグ名の候補（vあり / vなし / そのまま）
+        const tagCandidates = [`v${currentVersion}`, currentVersion]
+
+        for (const tag of tagCandidates) {
+          try {
+            console.log(`Trying to fetch release notes for tag: ${tag}`)
+            const release = await makeHttpRequest(`https://api.github.com/repos/eito54/Grosoq/releases/tags/${tag}`, {
+              headers: { 'User-Agent': 'Grosoq' }
+            })
+
+            if (release && release.body) {
+              notes = release.body
+              console.log(`Successfully fetched notes for tag: ${tag}`)
+              // 次回のために保存
+              config.lastReleaseNotes = notes
+              await configManager.saveConfig(config)
+              break // 取得できたら終了
+            }
+          } catch (error) {
+            console.error(`Failed to fetch release notes for tag ${tag}:`, error)
           }
-        } catch (error) {
-          console.error('Failed to fetch release notes from GitHub:', error)
         }
       }
 
