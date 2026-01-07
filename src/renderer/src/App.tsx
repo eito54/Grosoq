@@ -94,6 +94,147 @@ function ScanningOverlay() {
   )
 }
 
+function ConfirmModal({ 
+  isOpen, 
+  onConfirm, 
+  onCancel, 
+  title, 
+  message 
+}: { 
+  isOpen: boolean; 
+  onConfirm: () => void; 
+  onCancel: () => void; 
+  title: string; 
+  message: string;
+}) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onCancel}
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="relative w-full max-w-md bg-slate-900 border-2 border-red-500/50 rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(239,68,68,0.2)]"
+          >
+            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-right from-red-600 to-transparent animate-pulse" />
+            <div className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/30">
+                  <AlertCircle className="text-red-500" size={24} />
+                </div>
+                <h3 className="text-xl font-black text-slate-100 uppercase tracking-tight">{title}</h3>
+              </div>
+              <p className="text-slate-400 mb-8 leading-relaxed">
+                {message}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={onCancel}
+                  className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-all border border-slate-700 uppercase tracking-widest text-sm"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={onConfirm}
+                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl transition-all shadow-lg shadow-red-600/20 uppercase tracking-widest text-sm"
+                >
+                  破棄して移動
+                </button>
+              </div>
+            </div>
+            <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-red-500/5 to-transparent pointer-events-none" />
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function WhatsNewModal({ 
+  isOpen, 
+  onClose, 
+  version, 
+  notes 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  version: string; 
+  notes: string;
+}) {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-slate-950/90 backdrop-blur-md"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 30 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 30 }}
+            className="relative w-full max-w-lg bg-slate-900 border-2 border-blue-500/50 rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(59,130,246,0.3)]"
+          >
+            {/* 装飾 */}
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-shimmer" />
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl" />
+            
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-black bg-blue-500 text-white px-2 py-0.5 rounded uppercase tracking-widest">Update</span>
+                    <span className="text-blue-400 font-mono text-xs">v{version}</span>
+                  </div>
+                  <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 uppercase tracking-tight">What's New</h2>
+                </div>
+                <div className="w-14 h-14 bg-blue-600/20 rounded-2xl flex items-center justify-center border border-blue-500/30">
+                  <Zap className="text-blue-500 animate-pulse" size={32} />
+                </div>
+              </div>
+
+              <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-6 mb-8 max-h-[40vh] overflow-y-auto custom-scrollbar">
+                {notes ? (
+                  <div className="prose prose-invert prose-sm">
+                    <div className="whitespace-pre-wrap text-slate-300 leading-relaxed font-medium">
+                      {notes}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-slate-500 italic text-center py-4">
+                    このバージョンの詳細なリリースノートはありません。
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={onClose}
+                className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-black rounded-2xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] uppercase tracking-[0.2em] text-sm group flex items-center justify-center gap-2"
+              >
+                <span>Awesome!</span>
+                <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
+              </button>
+            </div>
+            
+            <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-blue-500/10 to-transparent pointer-events-none" />
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  )
+}
+
 function ScoreItem({ 
   team, 
   index, 
@@ -259,6 +400,11 @@ function App(): JSX.Element {
   const [showUpdateToast, setShowUpdateToast] = useState(false)
   const [showReleaseNotes, setShowReleaseNotes] = useState(false)
   const [showGroqInstructions, setShowGroqInstructions] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showWhatsNew, setShowWhatsNew] = useState(false)
+  const [whatsNewInfo, setWhatsNewInfo] = useState<{ version: string, notes: string }>({ version: '', notes: '' })
+  const [pendingTab, setPendingTab] = useState<typeof activeTab | null>(null)
   const [updateProgress, setUpdateProgress] = useState<number>(0)
   const [isUpdateDownloaded, setIsUpdateDownloaded] = useState(false)
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false)
@@ -276,6 +422,34 @@ function App(): JSX.Element {
     }, 2500)
     return () => clearTimeout(bootTimer)
   }, [config])
+
+  useEffect(() => {
+    const checkWhatsNew = async () => {
+      if (!window.electron || !window.electron.ipcRenderer) return
+      
+      try {
+        const result = await window.electron.ipcRenderer.invoke('check-whats-new')
+        if (result.show) {
+          setWhatsNewInfo({ version: result.version, notes: result.notes })
+          // 少し遅らせて起動時の情報量過多を避ける
+          setTimeout(() => setShowWhatsNew(true), 3000)
+        }
+      } catch (err) {
+        console.error('Failed to check whats new:', err)
+      }
+    }
+    
+    if (!isBooting) {
+      checkWhatsNew()
+    }
+  }, [isBooting])
+
+  const handleCloseWhatsNew = async () => {
+    setShowWhatsNew(false)
+    if (window.electron && window.electron.ipcRenderer) {
+      await window.electron.ipcRenderer.invoke('mark-whats-new-seen')
+    }
+  }
 
   const calculateRaceScore = (rank: number | undefined): number => {
     if (!rank) return 0
@@ -467,6 +641,7 @@ function App(): JSX.Element {
         const data = JSON.parse(event.data)
         if (data.type === 'scores-updated') {
           loadScores()
+          loadPlayerMappings()
         }
       }
 
@@ -544,6 +719,7 @@ function App(): JSX.Element {
         })
         
         loadScores()
+        loadPlayerMappings()
       } else {
         setStatus('error')
         addLog(`エラー: ${result.error}`, 'error')
@@ -666,9 +842,10 @@ function App(): JSX.Element {
     try {
       await fetch(`http://localhost:${serverPort}/api/scores/reset`, { method: 'POST' })
       loadScores()
-      addLog('スコアをリセットしました', 'success')
+      loadPlayerMappings()
+      addLog('スコアとマッピングをリセットしました', 'success')
     } catch (error) {
-      addLog('スコアのリセットに失敗しました', 'error')
+      addLog('リセットに失敗しました', 'error')
     }
   }
 
@@ -767,6 +944,7 @@ function App(): JSX.Element {
       const result = await window.electron.ipcRenderer.invoke('save-config', newConfig)
       if (result.success) {
         setConfig(newConfig)
+        setIsDirty(false)
         addLog(t('messages.configSaved'), 'success')
       } else {
         addLog(t('messages.configSaveError'), 'error')
@@ -774,6 +952,37 @@ function App(): JSX.Element {
     } catch (error) {
       addLog('設定の保存に失敗しました', 'error')
     }
+  }
+
+  const handleTabChange = (tab: typeof activeTab) => {
+    if (tab === activeTab) return
+    
+    // 未保存の設定、または編集中のデータがあるかチェック
+    const hasUnsavedChanges = isDirty || isEditing || isEditingMappings
+    
+    if (hasUnsavedChanges) {
+      setPendingTab(tab)
+      setShowConfirmModal(true)
+      return
+    }
+    
+    // 移動する場合、編集状態をリセット
+    if (isEditing) setIsEditing(false)
+    if (isEditingMappings) setIsEditingMappings(false)
+    setIsDirty(false)
+    
+    setActiveTab(tab)
+  }
+
+  const confirmTabChange = () => {
+    if (pendingTab) {
+      if (isEditing) setIsEditing(false)
+      if (isEditingMappings) setIsEditingMappings(false)
+      setIsDirty(false)
+      setActiveTab(pendingTab)
+      setPendingTab(null)
+    }
+    setShowConfirmModal(false)
   }
 
   const handleOpenOverlay = () => {
@@ -1155,7 +1364,7 @@ function App(): JSX.Element {
 
         <nav className="flex-1 px-4 space-y-2 mt-2">
           <button 
-            onClick={() => setActiveTab('dashboard')}
+            onClick={() => handleTabChange('dashboard')}
             className={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
               activeTab === 'dashboard' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
@@ -1167,7 +1376,7 @@ function App(): JSX.Element {
             {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">{t('operations.title')}</span>}
           </button>
           <button 
-            onClick={() => setActiveTab('reopen')}
+            onClick={() => handleTabChange('reopen')}
             className={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
               activeTab === 'reopen' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
@@ -1179,7 +1388,7 @@ function App(): JSX.Element {
             {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">dcマネージャー</span>}
           </button>
           <button 
-            onClick={() => setActiveTab('mappings')}
+            onClick={() => handleTabChange('mappings')}
             className={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
               activeTab === 'mappings' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
@@ -1191,7 +1400,7 @@ function App(): JSX.Element {
             {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">プレイヤーマッピング</span>}
           </button>
           <button 
-            onClick={() => setActiveTab('overlay')}
+            onClick={() => handleTabChange('overlay')}
             className={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
               activeTab === 'overlay' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
@@ -1203,7 +1412,7 @@ function App(): JSX.Element {
             {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">オーバーレイ設定</span>}
           </button>
           <button 
-            onClick={() => setActiveTab('settings')}
+            onClick={() => handleTabChange('settings')}
             className={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
               activeTab === 'settings' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
@@ -1218,7 +1427,7 @@ function App(): JSX.Element {
             )}
           </button>
           <button 
-            onClick={() => setActiveTab('about')}
+            onClick={() => handleTabChange('about')}
             className={cn(
               "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
               activeTab === 'about' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
@@ -1816,7 +2025,11 @@ function App(): JSX.Element {
                       <Layout className="text-blue-500" size={24} />
                       表示設定
                     </h3>
-                    <form onSubmit={handleSaveConfig} className="space-y-6">
+                    <form 
+                      onSubmit={handleSaveConfig} 
+                      onChange={() => setIsDirty(true)}
+                      className="space-y-6"
+                    >
                       <Toggle 
                         name="keepScoreOnRestart"
                         defaultChecked={config?.scoreSettings?.keepScoreOnRestart ?? true}
@@ -1900,7 +2113,11 @@ function App(): JSX.Element {
                 </div>
               )}
 
-              <form onSubmit={handleSaveConfig} className="space-y-8 pb-12 relative">
+              <form 
+                onSubmit={handleSaveConfig} 
+                onChange={() => setIsDirty(true)}
+                className="space-y-8 pb-12 relative"
+              >
                 <div className="sticky top-0 z-10 flex justify-between items-center bg-[#0f172a]/80 backdrop-blur-md p-4 mb-4 rounded-xl border border-slate-800 shadow-2xl">
                   <div className="flex items-center gap-3">
                     <div className={cn(
@@ -2085,6 +2302,21 @@ function App(): JSX.Element {
           )}
         </div>
       </main>
+
+      <ConfirmModal
+        isOpen={showConfirmModal}
+        onConfirm={confirmTabChange}
+        onCancel={() => setShowConfirmModal(false)}
+        title="未保存の変更"
+        message="編集中のデータがあります。保存せずに移動しますか？変更内容は破棄されます。"
+      />
+
+      <WhatsNewModal
+        isOpen={showWhatsNew}
+        onClose={handleCloseWhatsNew}
+        version={whatsNewInfo.version}
+        notes={whatsNewInfo.notes}
+      />
     </div>
     </>
   )

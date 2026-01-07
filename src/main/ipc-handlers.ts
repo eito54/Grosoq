@@ -45,6 +45,13 @@ export function registerIpcHandlers(
   autoUpdater.on('update-downloaded', (info) => {
     const mainWindow = getMainWindow()
     if (mainWindow) {
+      // リリースノートをコンフィグに一時保存（次回起動時に表示するため）
+      const config = configManager.getConfig()
+      config.lastReleaseNotes = Array.isArray(info.releaseNotes) 
+        ? info.releaseNotes.map(n => typeof n === 'string' ? n : n.note).join('\n')
+        : (typeof info.releaseNotes === 'string' ? info.releaseNotes : '')
+      
+      configManager.saveConfig(config)
       mainWindow.webContents.send('update-downloaded', info)
     }
   })
@@ -109,6 +116,38 @@ export function registerIpcHandlers(
 
   ipcMain.handle('get-app-version', () => {
     return app.getVersion()
+  })
+
+  ipcMain.handle('check-whats-new', async () => {
+    const config = configManager.getConfig()
+    const currentVersion = app.getVersion()
+    
+    // バージョンが上がっていたら、WHAT'S NEWを表示対象とする
+    if (config.lastSeenVersion && config.lastSeenVersion !== currentVersion) {
+      return {
+        show: true,
+        version: currentVersion,
+        notes: config.lastReleaseNotes
+      }
+    }
+    
+    // 初回起動時やバージョンが変わっていない時は表示しない
+    // ただし、lastSeenVersionを保存しておく
+    if (!config.lastSeenVersion) {
+      config.lastSeenVersion = currentVersion
+      await configManager.saveConfig(config)
+    }
+    
+    return { show: false }
+  })
+
+  ipcMain.handle('mark-whats-new-seen', async () => {
+    const config = configManager.getConfig()
+    config.lastSeenVersion = app.getVersion()
+    // リリースノートをクリア（表示済みのため）
+    config.lastReleaseNotes = ''
+    await configManager.saveConfig(config)
+    return { success: true }
   })
 
   ipcMain.handle('get-gemini-models', async () => {

@@ -75,6 +75,12 @@ export class ApiManager {
     }
   }
 
+  private normalizeName(name: string): string {
+    if (!name) return ''
+    // 前後の空白と、制御文字や不可視ボールド等の特殊文字を除去
+    return name.trim().replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, '')
+  }
+
   private findLongestCommonPrefix(names: string[]): string {
     if (!names || names.length === 0) return ''
     if (names.length === 1) return names[0]
@@ -110,43 +116,56 @@ export class ApiManager {
       const playerGroups: Record<string, string[]> = {}
 
       newResults.forEach((result) => {
-        if (result.name) {
-          const firstChar = result.name.charAt(0).toUpperCase()
+        const name = this.normalizeName(result.name)
+        if (name) {
+          const firstChar = name.charAt(0).toUpperCase()
           if (!playerGroups[firstChar]) {
             playerGroups[firstChar] = []
           }
-          playerGroups[firstChar].push(result.name)
+          if (!playerGroups[firstChar].includes(name)) {
+            playerGroups[firstChar].push(name)
+          }
         }
       })
 
       Object.keys(currentMappings).forEach((playerName) => {
-        const firstChar = playerName.charAt(0).toUpperCase()
-        if (playerGroups[firstChar] && !playerGroups[firstChar].includes(playerName)) {
-          playerGroups[firstChar].push(playerName)
+        const name = this.normalizeName(playerName)
+        const firstChar = name.charAt(0).toUpperCase()
+        if (playerGroups[firstChar] && !playerGroups[firstChar].includes(name)) {
+          playerGroups[firstChar].push(name)
         }
       })
 
       let mappingsUpdated = false
 
       Object.entries(playerGroups).forEach(([firstChar, players]) => {
-        if (players.length > 1) {
-          const commonPrefix = this.findLongestCommonPrefix(players)
-          let teamName = commonPrefix.length >= 2 ? commonPrefix : firstChar
+        // そのグループ内ですでにマッピングが存在するプレイヤーを探す
+        // 最初に見つかった既存マッピングをこのグループのデフォルトチーム名として採用する
+        const existingTeamName = players
+          .map(p => currentMappings[p])
+          .find(t => !!t && t !== firstChar)
 
-          // アルファベットは大文字で統一
-          teamName = teamName.toUpperCase()
+        // 共通プレフィックスの計算（2名以上いる場合のみ計算するが、1名でもマッピングは作成する）
+        const commonPrefix = players.length > 1 ? this.findLongestCommonPrefix(players) : ''
+        
+        // 既存のチーム名があればそれを優先し、なければ計算する
+        let teamName = existingTeamName || (commonPrefix.length >= 2 ? commonPrefix : firstChar)
 
-          players.forEach((playerName) => {
-            const currentTeamName = currentMappings[playerName]
-            if (!currentTeamName || currentTeamName !== teamName) {
-              console.log(
-                `Updating player mapping: "${playerName}" from "${currentTeamName || 'none'}" to "${teamName}"`
-              )
-              currentMappings[playerName] = teamName
-              mappingsUpdated = true
-            }
-          })
-        }
+        // アルファベットは大文字で統一
+        teamName = teamName.toUpperCase()
+
+        players.forEach((playerName) => {
+          const currentTeamName = currentMappings[playerName]
+          // 未マッピング、または「先頭1文字」等の暫定マッピングしかない場合は、
+          // 判明したチーム名（既存マッピング由来 or プレフィックス由来）で更新する
+          if (!currentTeamName || (currentTeamName.length === 1 && teamName.length > 1)) {
+            console.log(
+              `Mapping player: "${playerName}" to "${teamName}"`
+            )
+            currentMappings[playerName] = teamName
+            mappingsUpdated = true
+          }
+        })
       })
 
       if (mappingsUpdated) {
@@ -667,6 +686,11 @@ ${existingMappingsText}
   }
 
   private processRaceResults(results: any[]): RaceResult[] {
+    // まず名前を正規化
+    results.forEach(res => {
+      if (res.name) res.name = this.normalizeName(res.name)
+    })
+
     const updatedMappings = this.updatePlayerMappingsForNewPlayers(results)
     const savedSelfName = this.getSelfPlayerName()
     const detectedSelf = results.find(r => r.isCurrentPlayer)
@@ -685,6 +709,7 @@ ${existingMappingsText}
       if (res.total_score !== undefined) res.totalScore = res.total_score;
       if (res.score !== undefined && res.totalScore === undefined) res.totalScore = res.score;
       
+      // マッピングの適用（正規化された名前でチェック）
       if (res.name && updatedMappings[res.name]) {
         res.team = updatedMappings[res.name]
       }

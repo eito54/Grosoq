@@ -16,6 +16,8 @@ export interface Config {
   theme: 'light' | 'dark'
   showRemainingRaces: boolean
   language: string
+  lastSeenVersion: string
+  lastReleaseNotes: string
   overlayColors: {
     background: string
     text: string
@@ -71,6 +73,8 @@ export class ConfigManager {
       theme: 'light',
       showRemainingRaces: true,
       language: 'ja',
+      lastSeenVersion: '',
+      lastReleaseNotes: '',
       overlayColors: {
         background: 'rgba(15, 23, 42, 0.9)',
         text: '#f8fafc',
