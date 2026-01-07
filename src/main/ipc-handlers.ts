@@ -18,16 +18,16 @@ export function registerIpcHandlers(
   // Configure auto-updater
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
-  
+
   // 署名なしアプリでのアップデートを許可
   // @ts-ignore
   autoUpdater.forceDevUpdateConfig = true
-  
+
   // アップデート速度向上のための設定
   autoUpdater.logger = console
   // キャッシュを有効化し、差分更新（Differential Update）を支援
   autoUpdater.allowDowngrade = false
-  
+
   autoUpdater.on('update-available', (info) => {
     const mainWindow = getMainWindow()
     if (mainWindow) {
@@ -47,10 +47,10 @@ export function registerIpcHandlers(
     if (mainWindow) {
       // リリースノートをコンフィグに一時保存（次回起動時に表示するため）
       const config = configManager.getConfig()
-      config.lastReleaseNotes = Array.isArray(info.releaseNotes) 
+      config.lastReleaseNotes = Array.isArray(info.releaseNotes)
         ? info.releaseNotes.map(n => typeof n === 'string' ? n : n.note).join('\n')
         : (typeof info.releaseNotes === 'string' ? info.releaseNotes : '')
-      
+
       configManager.saveConfig(config)
       mainWindow.webContents.send('update-downloaded', info)
     }
@@ -61,7 +61,7 @@ export function registerIpcHandlers(
     if (mainWindow) {
       console.error('AutoUpdater Error Detailed Log:', err)
       let errorMessage = '不明なエラー'
-      
+
       if (err instanceof Error) {
         errorMessage = `${err.name}: ${err.message}`
       } else if (typeof err === 'object' && err !== null) {
@@ -74,7 +74,7 @@ export function registerIpcHandlers(
       } else {
         errorMessage = String(err)
       }
-      
+
       console.log('Main process sending update-error:', errorMessage)
       mainWindow.webContents.send('update-error', errorMessage)
     }
@@ -121,23 +121,43 @@ export function registerIpcHandlers(
   ipcMain.handle('check-whats-new', async () => {
     const config = configManager.getConfig()
     const currentVersion = app.getVersion()
-    
+
     // バージョンが上がっていたら、WHAT'S NEWを表示対象とする
     if (config.lastSeenVersion && config.lastSeenVersion !== currentVersion) {
+      let notes = config.lastReleaseNotes
+
+      // リリースノートが空の場合、GitHub APIから取得を試みる
+      if (!notes) {
+        console.log(`Release notes missing for v${currentVersion}, fetching from GitHub...`)
+        try {
+          const release = await makeHttpRequest(`https://api.github.com/repos/eito54/grosoq/releases/tags/v${currentVersion}`, {
+            headers: { 'User-Agent': 'Grosoq' }
+          })
+          if (release && release.body) {
+            notes = release.body
+            // 次回のために保存
+            config.lastReleaseNotes = notes
+            await configManager.saveConfig(config)
+          }
+        } catch (error) {
+          console.error('Failed to fetch release notes from GitHub:', error)
+        }
+      }
+
       return {
         show: true,
         version: currentVersion,
-        notes: config.lastReleaseNotes
+        notes: notes
       }
     }
-    
+
     // 初回起動時やバージョンが変わっていない時は表示しない
     // ただし、lastSeenVersionを保存しておく
     if (!config.lastSeenVersion) {
       config.lastSeenVersion = currentVersion
       await configManager.saveConfig(config)
     }
-    
+
     return { show: false }
   })
 
@@ -148,10 +168,6 @@ export function registerIpcHandlers(
     config.lastReleaseNotes = ''
     await configManager.saveConfig(config)
     return { success: true }
-  })
-
-  ipcMain.handle('get-gemini-models', async () => {
-    return await apiManager.getModels()
   })
 
   ipcMain.handle('fetch-race-results', async (_event, useTotalScore = false) => {
@@ -208,7 +224,7 @@ export function registerIpcHandlers(
           const result = await autoUpdater.checkForUpdates()
           const latestVersion = result?.updateInfo.version || currentVersion
           const releaseNotes = result?.updateInfo.releaseNotes
-          
+
           console.log('Latest version from autoUpdater:', latestVersion)
           const hasUpdate = compareVersions(latestVersion, currentVersion) > 0
 
@@ -225,7 +241,7 @@ export function registerIpcHandlers(
           const latestRelease = await makeHttpRequest('https://api.github.com/repos/eito54/grosoq/releases/latest', {
             headers: { 'User-Agent': 'Grosoq' }
           })
-          
+
           if (!latestRelease || !latestRelease.tag_name) {
             console.error('Fallback check also failed to get latest release info')
             throw updaterError // もともとのエラーを投げる
@@ -233,7 +249,7 @@ export function registerIpcHandlers(
 
           const latestVersion = latestRelease.tag_name.replace('v', '')
           console.log('Latest version found via fallback API:', latestVersion)
-          
+
           return {
             hasUpdate: compareVersions(latestVersion, currentVersion) > 0,
             latestVersion,
@@ -248,7 +264,7 @@ export function registerIpcHandlers(
         const latestRelease = await makeHttpRequest('https://api.github.com/repos/eito54/grosoq/releases/latest', {
           headers: { 'User-Agent': 'Grosoq' }
         })
-        
+
         if (!latestRelease || !latestRelease.tag_name) {
           console.error('Failed to fetch latest release from GitHub')
           throw new Error('最新リリースの取得に失敗しました')
