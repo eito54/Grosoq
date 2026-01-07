@@ -26,7 +26,6 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
-    "@google/generative-ai": "^0.24.1",
     "clsx": "^2.1.1",
     "electron-updater": "^6.1.8",
     "framer-motion": "^12.24.0",
