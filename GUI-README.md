@@ -1,147 +1,90 @@
-# 🖥️ Grosoq
+#  Grosoq
 
-このGUIアプリケーションを使用することで、レース結果取得ボタンをデスクトップアプリで操作し、OBSオーバーレイには得点表示のみを表示できます。
+����GUI�A�v���P�[�V�������g�p���邱�ƂŁA���[�X���ʎ擾�{�^�����f�X�N�g�b�v�A�v���ő��삵�AOBS�I�[�o�[���C�ɂ͓��_�\���݂̂�\���ł��܂��B
 
-## 🚀 クイックスタート
+##  �N�C�b�N�X�^�[�g
 
-### 1. 起動方法
-```bash
-# 方法1: バッチファイルで起動（Windows推奨）
+### 1. �N�����@
+`ash
+# ���@1: �o�b�`�t�@�C���ŋN���iWindows�����j
 start-gui.bat
 
-# 方法2: コマンドラインで起動
-pnpm run gui:install  # 初回のみ
-pnpm run gui:dev
-```
+# ���@2: �R�}���h���C���ŋN��
+pnpm run dev
+`
 
-### 2. 設定
-GUIアプリケーションを起動したら、以下の設定を入力してください：
+### 2. �ݒ�
+GUI�A�v���P�[�V�������N��������A�ȉ��̐ݒ����͂��Ă��������B
 
-- **OBS IPアドレス**: `localhost` (同じPCの場合)
-- **OBS WebSocketパスワード**: OBSで設定したパスワード
-- **OBS ソース名**: キャプチャソース名（例：`ウィンドウキャプチャ`）
-- **Gemini API キー**: Google AI Studioで取得したAPIキー
+- **OBS IP�A�h���X**: localhost (����PC�̏ꍇ)
+- **OBS WebSocket�|�[�g**: 4455 (�f�t�H���g)
+- **OBS WebSocket�p�X���[�h**: OBS�Őݒ肵���p�X���[�h
+- **OBS �\�[�X��**: �L���v�`���\�[�X���i��F�f���L���v�`���f�o�C�X�j
+- **Groq API �L�[**: Groq Console�Ŏ擾����API�L�[
 
-### 3. 使用手順
-1. 設定を入力して「💾 設定を保存」をクリック
-2. 「🔗 接続テスト」で接続を確認
-3. 「🖥️ オーバーレイを開く」でブラウザが開く
-4. そのURLをOBSのブラウザソースに追加
-5. ゲーム中に「📊 レース結果を取得」ボタンを押す
+### 3. �g�p�菇
+1. �ݒ����͂��āu �ݒ��ۑ��v���N���b�N
+2. �u �ڑ��e�X�g�v�Őڑ����m�F
+3. �u �I�[�o�[���C���J���v�Ńu���E�U���J��
+4. ����URL��OBS�̃u���E�U�\�[�X�ɒǉ�
+5. �Q�[�����Ɂu ���[�X���ʂ��擾�v�{�^��������
 
-## 🎯 主な機能
+##  ��ȋ@�\
 
-### デスクトップGUIアプリ
-- ✅ 設定の保存・管理
-- ✅ レース結果取得ボタン
-- ✅ チーム合計点取得ボタン
-- ✅ 接続テスト機能
-- ✅ ワンクリックでオーバーレイ表示
+### �f�X�N�g�b�vGUI�A�v��
+- �ݒ�̕ۑ��Ǘ�
+- ���[�X���ʎ擾�{�^��
+- �`�[�����v�_�擾�{�^��
+- �ڑ��e�X�g�@�\
+- �����N���b�N�ŃI�[�o�[���C�\��
 
-### オーバーレイ表示
-- ✅ 完全透明な背景
-- ✅ 得点表示のみ（ボタンは非表示）
-- ✅ リアルタイム更新
-- ✅ OBS配信に最適化
+### �I�[�o�[���C�\��
+- ���S�����Ȕw�i
+- ���_�\���̂݁i�{�^���͔�\���j
+- ���A���^�C���X�V
+- OBS�z�M�ɍœK��
 
-## 🔧 OBS設定
+##  OBS�ݒ�
 
-### ブラウザソースの追加
-1. OBSで「ソース」→「+」→「ブラウザ」を選択
-2. URL: `http://localhost:3000?overlay=true`
-3. 幅: 1920、高さ: 1080（お好みで調整）
-4. 「ページ読み込み時にブラウザソースを更新」にチェック
+### �u���E�U�\�[�X�̒ǉ�
+1. OBS�Łu�\�[�X�v�u+�v�u�u���E�U�v��I��
+2. URL: http://localhost:3000/static?overlay=true
+3. ��: 800�A����: 600�i���D�݂Œ����j
+4. �u�y�[�W�ǂݍ��ݎ��Ƀu���E�U�\�[�X���X�V�v�Ƀ`�F�b�N
 
-### WebSocket設定
-1. OBSで「ツール」→「WebSocketサーバー設定」
-2. 「WebSocketサーバーを有効にする」にチェック
-3. パスワードを設定
-4. GUIアプリの設定に入力
+### WebSocket�ݒ�
+1. OBS�Łu�c�[���v�uWebSocket�T�[�o�[�ݒ�v
+2. �uWebSocket�T�[�o�[��L���ɂ���v�Ƀ`�F�b�N
+3. �p�X���[�h��ݒ�
+4. GUI�A�v���̐ݒ�ɓ���
 
-## 📂 ファイル構成
+##  �t�@�C���\��
 
-```
-gui/
-├── main.js          # Electronメインプロセス
-├── preload.js       # セキュリティブリッジ
-├── index.html       # GUI画面
-└── renderer.js      # フロントエンド処理
+`
+src/
+ main/            # Electron���C���v���Z�X
+ preload/         # �v�����[�h�X�N���v�g
+ renderer/        # React�t�����g�G���h
 
-src/app/page.tsx     # オーバーレイ表示（修正済み）
-start-gui.bat        # 起動用バッチファイル
-```
+gui/                 # ���K�V�[�R�[�h�i�Q�l�p�j
+`
 
-## 🐛 トラブルシューティング
+##  �g���u���V���[�e�B���O
 
-### よくある問題
+### �悭������
 
-#### 1. 「Node.jsがインストールされていません」
-- [Node.js公式サイト](https://nodejs.org/)からLTS版をダウンロード
-- インストール後、コマンドプロンプトを再起動
+#### 1. �uNode.js���C���X�g�[������Ă��܂���v
+- [Node.js�����T�C�g](https://nodejs.org/)����LTS�ł��_�E�����[�h
+- �C���X�g�[����A�R�}���h�v�����v�g���ċN��
 
-#### 2. 「pnpmがインストールされていません」
-```bash
-npm install -g pnpm
-```
+#### 2. �uOBS�ڑ��G���[�v
+- OBS WebSocket�T�[�o�[���L���ɂȂ��Ă��邩�m�F
+- IP�A�h���X�p�X���[�h�|�[�g�����������m�F
+- �\�[�X����OBS�̕\���Ɗ��S��v���Ă��邩�m�F
 
-#### 3. 「Next.jsサーバーが起動していません」
-- アプリ起動から30秒程度待つ
-- ポート3000が他のアプリで使用されていないか確認
+#### 3. �uGroq API �G���[�v
+- API�L�[�����������͂���Ă��邩�m�F
+- [Groq Console](https://console.groq.com/keys)��API�L�[�̏�Ԃ��m�F
 
-#### 4. 「OBS接続エラー」
-- OBS WebSocketサーバーが有効になっているか確認
-- IPアドレス・パスワードが正しいか確認
-- ソース名がOBSの表示と完全一致しているか確認
-
-#### 5. 「Gemini API エラー」
-- APIキーが正しく入力されているか確認
-- [Google AI Studio](https://makersuite.google.com/)でAPI利用制限を確認
-
-### エラーログの確認
-- GUIアプリの開発者ツール: `Ctrl+Shift+I`
-- ブラウザの開発者ツール: `F12`
-
-## 🔄 更新・アップデート
-
-### 依存関係の更新
-```bash
-pnpm update
-```
-
-### Electronの再ビルド
-```bash
-pnpm run gui:build
-```
-
-## 📦 配布用ビルド
-
-### Windows実行ファイル作成
-```bash
-pnpm run gui:build
-```
-`dist-gui/` フォルダに実行ファイルが生成されます。
-
-## 💡 使用のコツ
-
-### レース結果取得のタイミング
-- ✅ **最適**: レース結果画面が完全に表示された後
-- ✅ **最適**: 順位・プレイヤー名・得点が全て見える状態
-- ❌ **NG**: アニメーション中や画面切り替え中
-
-### チーム合計点取得のタイミング
-- ✅ **最適**: 累積得点画面（総合結果）が表示された後
-- ✅ **最適**: 全プレイヤーの累積得点が確認できる状態
-- ❌ **NG**: レース途中の結果画面
-
-### OBSでの表示調整
-- オーバーレイの透明度: 100%に設定
-- 位置: 画面の邪魔にならない場所に配置
-- サイズ: 必要に応じて拡大・縮小
-
-## 🆘 サポート
-
-質問や問題がある場合は、プロジェクトのIssuesでお知らせください。
-
----
-
-**ℹ️ 注意**: このGUIアプリケーションは、メインのNext.jsアプリケーションと連携して動作します。両方のアプリケーションが正常に動作している必要があります。
+### �G���[���O�̊m�F
+- logs/ �t�H���_���̍ŐV�̃��O�t�@�C�����m�F���Ă��������B

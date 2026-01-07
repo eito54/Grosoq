@@ -27,7 +27,7 @@ Grosoqを最新の技術スタック（Vite + React + TypeScript + Tailwind CSS�
 src/
 ├── main/                   # メインプロセス (TypeScript)
 │   ├── index.ts           # エントリーポイント
-│   ├── api-manager.ts     # Gemini AI & OBS 連携
+│   ├── api-manager.ts     # Groq AI & OBS 連携
 │   ├── config-manager.ts  # 設定管理
 │   ├── server.ts          # 埋め込みサーバー (Express)
 │   └── ipc-handlers.ts    # IPC通信ハンドラー
@@ -45,7 +45,7 @@ public/                     # 静的資産
 
 ### 4. 機能の強化 ✅
 
-- **AI解析の高度化**: Gemini 2.0 Flashを使用した高精度なOCRと、チーム名判別アルゴリズム（LCP）の搭載
+- **AI解析の高度化**: Groq 2.0 Flashを使用した高精度なOCRと、チーム名判別アルゴリズム（LCP）の搭載
 - **再開マネージャー**: 過去のスコア状態を10スロットまで保存・復元可能
 - **リアルタイム編集**: ダッシュボード上で直接チーム名やスコアを編集可能
 - **OBS連携**: 自動スクリーンショット取得とオーバーレイのリアルタイム更新（SSE）

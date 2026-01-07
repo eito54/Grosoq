@@ -7,7 +7,7 @@ export interface Config {
   obsPort: number
   obsPassword: string
   obsSourceName: string
-  aiProvider: 'gemini' | 'openai' | 'groq'
+  aiProvider: 'groq' | 'openai' | 'groq'
   geminiApiKey: string
   geminiApiKeys: string[]
   geminiModel: string
@@ -62,7 +62,7 @@ export class ConfigManager {
       obsPort: 4455,
       obsPassword: '',
       obsSourceName: '映像キャプチャデバイス',
-      aiProvider: 'gemini',
+      aiProvider: 'groq',
       geminiApiKey: '',
       geminiApiKeys: [],
       geminiModel: 'gemini-1.5-flash-8b',

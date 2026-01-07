@@ -89,7 +89,7 @@ User Interface ← AppController ← IPC ← Config Validation
 
 ### レース結果処理フロー
 ```
-OBS Screenshot → Gemini AI → Result Processing → Score Calculation → File Save
+OBS Screenshot → Groq AI → Result Processing → Score Calculation → File Save
                                     ↓
 UI Update ← NotificationManager ← ApiManager ← Score Validation
 ```

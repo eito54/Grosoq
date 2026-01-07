@@ -210,7 +210,7 @@ export class ApiManager {
       return this.analyzeRaceGroq(imageUrl, useTotalScore)
     }
 
-    // Gemini APIキーが設定されていない場合は、フォールバックとしてGroqを試みる
+    // Groq APIキーが設定されていない場合は、フォールバックとしてGroqを試みる
     if (!config.geminiApiKey && (!config.geminiApiKeys || config.geminiApiKeys.length === 0)) {
       if (config.groqApiKey) {
         return this.analyzeRaceGroq(imageUrl, useTotalScore)
@@ -227,7 +227,7 @@ export class ApiManager {
     // 画像のハッシュを計算して、前回と同じ画像なら解析をスキップ
     const currentHash = crypto.createHash('md5').update(base64Data).digest('hex') + `_${useTotalScore}`
     if (this.lastAnalysisHash === currentHash && this.lastAnalysisResult) {
-      console.log('Skipping Gemini API request: Image is identical to last successful analysis.')
+      console.log('Skipping Groq API request: Image is identical to last successful analysis.')
       return this.lastAnalysisResult
     }
 
@@ -442,11 +442,11 @@ ${existingMappingsText}
             if (error.message?.includes('429') || error.status === 429) {
               if (attempt < maxRetries - 1) {
                 const delay = baseDelay * Math.pow(2, attempt);
-                console.warn(`Gemini Key ${keyIndex + 1} Rate Limit. Retry in ${delay}ms...`);
+                console.warn(`Groq Key ${keyIndex + 1} Rate Limit. Retry in ${delay}ms...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 continue;
               } else {
-                console.warn(`Gemini Key ${keyIndex + 1} exhausted. Trying next key if available...`);
+                console.warn(`Groq Key ${keyIndex + 1} exhausted. Trying next key if available...`);
                 break; // 次のキーへ
               }
             }
@@ -457,7 +457,7 @@ ${existingMappingsText}
       }
 
       if (!result) {
-        throw lastError || new Error('全てのGemini APIキーの制限に達したか、失敗しました。');
+        throw lastError || new Error('全てのGroq APIキーの制限に達したか、失敗しました。');
       }
 
     const text = result.response.text()
@@ -467,7 +467,7 @@ ${existingMappingsText}
       parsedResponse = JSON.parse(cleanText)
     } catch (e) {
       console.error('Failed to parse Gemini response:', cleanText)
-      throw new Error('Geminiからのレスポンスを解析できませんでした')
+      throw new Error('Groqからのレスポンスを解析できませんでした')
     }
 
     if (parsedResponse.error) {
@@ -717,7 +717,7 @@ ${existingMappingsText}
         return this.modelsCache.models
       }
 
-      // Fetch models from Gemini API
+      // Fetch models from Groq API
       const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
       
       return new Promise((resolve) => {

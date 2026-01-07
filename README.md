@@ -6,7 +6,7 @@
   [![GitHub](https://img.shields.io/github/license/eito54/Grosoq)](LICENSE)
   [![Electron](https://img.shields.io/badge/Electron-Latest-blue)](https://www.electronjs.org/)
   [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
-  [![Gemini](https://img.shields.io/badge/Gemini-AI-orange)](https://ai.google.dev/)
+  [![Groq](https://img.shields.io/badge/Groq-AI-orange)](https://groq.com/)
 </div>
 
 ---
@@ -29,7 +29,7 @@ OBS配信とAI画像解析を組み合わせ、簡単な操作でリアルタイ
 - **直感的GUI**: 分かりやすいデスクトップアプリインターフェース
 
 #### **AI自動解析**
-- **Google Gemini AI**: 最新のAI技術でレース結果を高精度解析
+- **Groq AI**: 最新のAI技術でレース結果を高精度解析
 - **チーム自動判別**: プレイヤー名からチーム名を自動抽出
 - **自チーム検出**: 画面の色解析で自分のチームを自動認識
 
@@ -54,7 +54,7 @@ OBS配信とAI画像解析を組み合わせ、簡単な操作でリアルタイ
 ### 🛠️ 技術スタック
 - **デスクトップアプリ**: Electron
 - **バックエンド**: Express.js、JavaScript
-- **AI解析**: Google Gemini Vision API
+- **AI解析**: Groq Vision API
 - **配信連携**: OBS WebSocket
 - **UI**: モダンなデスクトップインターフェース
 - **アーキテクチャ**: 改良されたモジュラー設計
@@ -68,8 +68,8 @@ OBS配信とAI画像解析を組み合わせ、簡単な操作でリアルタイ
   - [公式サイト](https://obsproject.com/)からダウンロード
   - WebSocketプラグインが内蔵されているバージョンを使用
 - **マリオカート8デラックス** + **Nintendo Switch**
-- **Google Gemini API キー**
-  - [Google AI Studio](https://makersuite.google.com/app/apikey)で無料取得
+- **Groq API キー**
+  - [Groq Console](https://console.groq.com/keys)で無料取得
 
 #### **推奨環境**
 - **OS**: Windows 10/11 (64bit)
@@ -119,15 +119,15 @@ npm run dev
      - **パスワード**: OBSで設定したパスワード（未設定の場合は空欄）
      - **ソース名**: `映像キャプチャデバイス`（キャプチャボード）または `ウィンドウキャプチャ`
 
-#### **2. Gemini API設定**
+#### **2. Groq API設定**
 1. **APIキー取得**
-   - [Google AI Studio](https://makersuite.google.com/app/apikey)にアクセス
+   - [Groq Console](https://console.groq.com/keys)にアクセス
    - Googleアカウントでログイン
    - 「Create API Key」をクリック
    - 生成されたAPIキーをコピー
 
 2. **アプリに設定**
-   - Grosoqの設定画面で「Gemini API キー」にペースト
+   - Grosoqの設定画面で「Groq API キー」にペースト
    - 「設定を保存」をクリック
 
 #### **3. OBSソース設定**
@@ -266,8 +266,8 @@ npm run dev
    - ソースが非表示になっていないか確認
 
 #### **🔴 「AI解析エラー」が出る場合**
-1. **Gemini APIキーを確認**
-   - [Google AI Studio](https://makersuite.google.com/app/apikey)で正しいキーか確認
+1. **Groq APIキーを確認**
+   - [Groq Console](https://console.groq.com/keys)で正しいキーか確認
    - キーを再生成して設定し直す
 
 2. **画面の状態を確認**
@@ -320,7 +320,7 @@ npm run dev
 
 ### **⚠️ 注意事項**
 - **インターネット接続必須**: AI解析にはインターネット接続が必要
-- **Gemini API制限**: 無料版には月間の利用制限があります
+- **Groq API制限**: 無料版には月間の利用制限があります
 - **画面解像度**: 高解像度で鮮明な画面ほど解析精度が向上します
 - **ログ管理**: ログファイルは7日間保持され、自動的にクリーンアップされます
 - **設定ファイル**: 設定は自動的にバックアップされ、破損時は自動復旧されます
@@ -328,7 +328,7 @@ npm run dev
 ## 💡 よくある質問 (FAQ)
 
 **Q: 料金はかかりますか？**
-A: Grosoq自体は無料です。Google Gemini APIも無料枠内で使用できます。
+A: Grosoq自体は無料です。Groq APIも無料枠内で使用できます。
 
 **Q: 他の配信ソフトでも使えますか？**
 A: 現在はOBS Studioのみ対応しています。
@@ -405,5 +405,5 @@ MIT License - 詳細は[LICENSE](LICENSE)ファイルをご覧ください。
 - **v1.0.0**: 初回リリース
   - デスクトップGUIアプリケーション
   - OBS WebSocket連携
-  - Google Gemini AI解析
+  - Groq AI解析
   - リアルタイムオーバーレイ表示

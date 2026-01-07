@@ -50,6 +50,50 @@ function CountUp({ value, duration = 1 }: { value: number; duration?: number }) 
   return <span className={cn(isCounting && "counting-text transition-all")}>{displayValue}</span>
 }
 
+function ScanningOverlay() {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 1.05 }}
+      className="absolute inset-0 z-50 bg-slate-900/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl border-2 border-red-500/50 overflow-hidden"
+    >
+      <div className="absolute inset-0 scan-grid opacity-30" />
+      <div className="scan-line" />
+      
+      <motion.div
+        animate={{ 
+          boxShadow: ["0 0 15px rgba(239,68,68,0.3)", "0 0 30px rgba(239,68,68,0.6)", "0 0 15px rgba(239,68,68,0.3)"]
+        }}
+        transition={{ duration: 2, repeat: Infinity }}
+        className="relative z-10 w-24 h-24 border-2 border-red-500 rounded-full flex items-center justify-center bg-red-500/10"
+      >
+        <RefreshCw className="text-red-500 animate-spin" size={40} />
+      </motion.div>
+      
+      <div className="mt-6 z-10 text-center">
+        <h4 className="text-red-500 font-black tracking-[0.3em] uppercase text-xl">Analyzing</h4>
+        <div className="flex gap-1 justify-center mt-2">
+          {[0, 1, 2].map(i => (
+            <motion.div
+              key={i}
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+              className="w-2 h-2 bg-red-500 rounded-full"
+            />
+          ))}
+        </div>
+      </div>
+      
+      <div className="absolute bottom-4 left-6 right-6 flex justify-between text-[10px] text-red-500/50 font-mono">
+        <span>X-AXIS: DETECTING</span>
+        <span>Y-AXIS: SCANNING</span>
+        <span>GROQ_VISION_ACTIVE</span>
+      </div>
+    </motion.div>
+  )
+}
+
 function ScoreItem({ 
   team, 
   index, 
@@ -1375,44 +1419,70 @@ function App(): JSX.Element {
                 </div>
               </header>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/30" />
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-2 bg-emerald-500/10 rounded-lg">
+                    <div className="p-3 bg-emerald-500/10 rounded-xl group-hover:scale-110 transition-transform">
                       <CheckCircle2 className="text-emerald-500" size={24} />
                     </div>
-                    <span className="text-xs font-medium text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">Active</span>
+                    <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                      <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full dot-pulse-success" />
+                      <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-tight">Active</span>
+                    </div>
                   </div>
                   <h3 className="text-slate-400 text-sm font-medium mb-1">内蔵サーバー</h3>
-                  <p className="text-2xl font-bold text-white">Port {serverPort}</p>
+                  <p className="text-2xl font-bold text-white font-mono tracking-tight">Port {serverPort}</p>
                 </div>
 
-                <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl">
+                <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/30" />
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                    <div className="p-3 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform">
                       <Monitor className="text-blue-500" size={24} />
                     </div>
+                    {config?.obsIp ? (
+                      <div className="flex items-center gap-1.5 bg-blue-500/10 px-2.5 py-1 rounded-full">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full dot-pulse-success" />
+                        <span className="text-[10px] font-bold text-blue-500 uppercase tracking-tight">Connected</span>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-800 px-2.5 py-1 rounded-full uppercase tracking-tight">Disconnected</span>
+                    )}
                   </div>
                   <h3 className="text-slate-400 text-sm font-medium mb-1">OBS 接続</h3>
-                  <p className="text-2xl font-bold text-white">{config?.obsIp || '未設定'}</p>
+                  <p className="text-2xl font-bold text-white font-mono tracking-tight">{config?.obsIp || '未設定'}</p>
                 </div>
 
-                <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl">
+                <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-purple-500/30" />
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-2 bg-purple-500/10 rounded-lg">
+                    <div className="p-3 bg-purple-500/10 rounded-xl group-hover:scale-110 transition-transform">
                       <Settings className="text-purple-500" size={24} />
                     </div>
+                    {config?.groqApiKey ? (
+                      <div className="flex items-center gap-1.5 bg-purple-500/10 px-2.5 py-1 rounded-full">
+                        <div className="w-1.5 h-1.5 bg-purple-500 rounded-full dot-pulse-success" />
+                        <span className="text-[10px] font-bold text-purple-500 uppercase tracking-tight">Ready</span>
+                      </div>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-800 px-2.5 py-1 rounded-full uppercase tracking-tight">Offline</span>
+                    )}
                   </div>
                   <h3 className="text-slate-400 text-sm font-medium mb-1">Groq API</h3>
-                  <p className="text-2xl font-bold text-white">
-                    {config?.groqApiKey ? '設定済み' : '未設定'}
+                  <p className="text-2xl font-bold text-white font-mono tracking-tight">
+                    {config?.groqApiKey ? 'VERIFIED' : 'NO KEY'}
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Scores Table */}
-                <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+                <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative">
+                  <AnimatePresence>
+                    {status === 'loading' && <ScanningOverlay />}
+                  </AnimatePresence>
+                  
                   <div className="p-6 border-b border-slate-800 flex justify-between items-center">
                     <h3 className="font-bold text-lg flex items-center gap-2">
                       <BarChart3 size={20} className="text-blue-500" />
@@ -1739,7 +1809,7 @@ function App(): JSX.Element {
                 <p className="text-slate-400">配信画面に表示するスコアボードの外観をカスタマイズします</p>
               </header>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 gap-8">
                 <div className="space-y-6">
                   <div className="bg-[#1e293b] rounded-3xl p-8 border border-slate-800 shadow-xl">
                     <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
@@ -1769,40 +1839,6 @@ function App(): JSX.Element {
                         </button>
                       </div>
                     </form>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="bg-[#1e293b] rounded-3xl p-8 border border-slate-800 shadow-xl">
-                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                      <Monitor className="text-blue-500" size={24} />
-                      プレビュー & ツール
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="aspect-[4/3] bg-[#0f172a] rounded-2xl border border-slate-700 relative overflow-hidden group">
-                        <iframe 
-                          src={`http://localhost:${serverPort}/?overlay=true`}
-                          className="w-full h-full border-none pointer-events-none"
-                          title="Overlay Preview"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <button 
-                            onClick={handleOpenOverlay}
-                            className="bg-white text-slate-900 px-4 py-2 rounded-lg font-bold flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform"
-                          >
-                            <ExternalLink size={18} />
-                            ブラウザで開く
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <div className="p-4 bg-blue-600/10 border border-blue-500/20 rounded-xl">
-                        <p className="text-sm text-blue-300 leading-relaxed">
-                          <strong>OBSへの追加方法:</strong><br/>
-                          ブラウザソースを追加し、URLに <code>http://localhost:{serverPort}/</code> を入力してください。幅 400px、高さ 600px 程度が推奨です。
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>

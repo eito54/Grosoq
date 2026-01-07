@@ -72,8 +72,8 @@ OBS WebSocket設定:
 ├── パスワード: OBSで設定したWebSocketパスワード
 └── ソース名: キャプチャソースの名前
 
-Gemini API設定:
-└── APIキー: Google AI Studioで取得したAPIキー
+Groq API設定:
+└── APIキー: Groq Consoleで取得したAPIキー
 ```
 
 ### 3. 使用手順
@@ -100,7 +100,7 @@ Electronアプリ
 
 ### 内蔵API
 - `POST /api/obs` - OBSスクリーンショット取得
-- `POST /api/gemini` - Gemini AI分析
+- `POST /api/gemini` - Groq AI分析
 - `POST /api/fetch-race-results` - レース結果分析
 - `GET|POST /api/scores` - スコア取得・保存
 - `GET /api/localIp` - ローカルIP取得
@@ -116,7 +116,7 @@ Electronアプリ
 ## ⚠️ 制限事項
 
 ### API制限
-- **Gemini API**: Google AI Studioの利用制限に依存
+- **Groq API**: Groq Consoleの利用制限に依存
 - **OBS WebSocket**: OBS 28.0以降が必要
 
 ### システム要件
@@ -125,7 +125,7 @@ Electronアプリ
 - **Linux**: Ubuntu 18.04以降または同等のディストリビューション
 
 ### ネットワーク
-- **インターネット接続**: Gemini API利用時に必要
+- **インターネット接続**: Groq API利用時に必要
 - **ローカルネットワーク**: OBS接続時に必要
 
 ## 🐛 トラブルシューティング
@@ -146,10 +146,10 @@ Electronアプリ
 - パスワードを設定
 ```
 
-#### 3. Gemini APIエラー
+#### 3. Groq APIエラー
 ```
 エラー: Invalid API key
-解決: Google AI StudioでAPIキーを再確認
+解決: Groq ConsoleでAPIキーを再確認
 - https://makersuite.google.com/
 - 新しいAPIキーを生成
 - 利用制限を確認
@@ -174,7 +174,7 @@ Electronアプリ
 ### ビルド後確認
 - [ ] 各プラットフォームで実行可能
 - [ ] 設定の保存・読み込みが正常
-- [ ] OBS接続とGemini API呼び出しが正常
+- [ ] OBS接続とGroq API呼び出しが正常
 - [ ] オーバーレイ表示が正常
 - [ ] アプリのアンインストールが正常
 

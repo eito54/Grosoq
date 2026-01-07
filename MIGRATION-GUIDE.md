@@ -79,7 +79,7 @@ cp .env .env.backup
 自動移行後、以下の設定を確認してください：
 
 #### 基本設定
-- Gemini API Key
+- Groq API Key
 - OBS WebSocket設定
 - サーバーポート設定
 - 言語設定
@@ -203,7 +203,7 @@ document.addEventListener('languageChanged', (event) => {
 - [ ] アプリケーションが正常に起動する
 - [ ] 設定が正しく移行されている
 - [ ] OBS接続が正常に動作する
-- [ ] Gemini API接続が正常に動作する
+- [ ] Groq API接続が正常に動作する
 - [ ] レース結果取得が正常に動作する
 - [ ] スコア編集機能が正常に動作する
 - [ ] 言語切り替えが正常に動作する
