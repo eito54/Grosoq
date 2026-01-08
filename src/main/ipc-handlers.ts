@@ -87,7 +87,7 @@ export function registerIpcHandlers(
   ipcMain.handle('save-config', async (_event, config) => {
     try {
       await configManager.saveConfig(config)
-      embeddedServer.broadcastScoreUpdate()
+      embeddedServer.broadcastScoreUpdate('config-updated')
       return { success: true }
     } catch (error: any) {
       return { success: false, error: error.message }

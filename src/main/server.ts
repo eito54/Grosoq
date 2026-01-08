@@ -209,13 +209,14 @@ export class EmbeddedServer {
 
     // Config API
     this.app.get('/api/config', (_req: Request, res: Response) => {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
       res.json(this.configManager.getConfig())
     })
 
     this.app.post('/api/config', (req: Request, res: Response) => {
       try {
         this.configManager.saveConfig(req.body)
-        this.broadcastScoreUpdate()
+        this.broadcastScoreUpdate('config-updated')
         res.json({ success: true })
       } catch (error: any) {
         res.status(500).json({ success: false, error: error.message })
@@ -407,8 +408,8 @@ export class EmbeddedServer {
     })
   }
 
-  public broadcastScoreUpdate(): void {
-    const message = JSON.stringify({ type: 'scores-updated', timestamp: Date.now() })
+  public broadcastScoreUpdate(type: string = 'scores-updated'): void {
+    const message = JSON.stringify({ type, timestamp: Date.now() })
     this.sseClients.forEach((clientInfo, res) => {
       try {
         res.write(`data: ${message}\n\n`)

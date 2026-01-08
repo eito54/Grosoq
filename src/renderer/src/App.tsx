@@ -2349,7 +2349,7 @@ function App(): JSX.Element {
                             defaultValue={config?.overlayTheme || 'default'}
                             className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
                           >
-                            <option value="default">デフォルト (平行四辺形)</option>
+                            <option value="default">デフォルト</option>
                             <option value="mkw">MK8DX風</option>
                           </select>
                           <p className="text-xs text-slate-500">オーバーレイの見た目を変更します。</p>
