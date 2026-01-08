@@ -1950,823 +1950,867 @@ function App(): JSX.Element {
           </AnimatePresence>
 
           <div className="p-8 max-w-5xl mx-auto">
-            {activeTab === 'dashboard' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <header className="flex justify-between items-end">
-                  <div>
-                    <h2 className="text-3xl font-bold text-white mb-2">{t('app.title')}</h2>
-                    <p className="text-slate-400">{t('app.subtitle')}</p>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleFetchResults(false)}
-                      disabled={status === 'loading'}
-                      className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-blue-900/20 active:scale-95"
-                    >
-                      {status === 'loading' ? <RefreshCw className="animate-spin" size={20} /> : <Play size={20} />}
-                      {t('operations.fetchRace')}
-                    </button>
-                    <button
-                      onClick={() => handleFetchResults(true)}
-                      disabled={status === 'loading'}
-                      className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-purple-900/20 active:scale-95"
-                    >
-                      <History size={20} />
-                      {t('operations.fetchOverall')}
-                    </button>
-                    <button
-                      onClick={handleOpenOverlay}
-                      className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-slate-900/20 active:scale-95"
-                    >
-                      <ExternalLink size={20} />
-                      {t('operations.openOverlay')}
-                    </button>
-                  </div>
-                </header>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                  <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/30" />
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="p-3 bg-emerald-500/10 rounded-xl group-hover:scale-110 transition-transform">
-                        <CheckCircle2 className="text-emerald-500" size={24} />
-                      </div>
-                      <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-full">
-                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full dot-pulse-success" />
-                        <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-tight">Active</span>
-                      </div>
+            <AnimatePresence mode="wait">
+              {activeTab === 'dashboard' && (
+                <motion.div
+                  key="dashboard"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-8"
+                >
+                  <header className="flex justify-between items-end">
+                    <div>
+                      <h2 className="text-3xl font-bold text-white mb-2">{t('app.title')}</h2>
+                      <p className="text-slate-400">{t('app.subtitle')}</p>
                     </div>
-                    <h3 className="text-slate-400 text-sm font-medium mb-1">内蔵サーバー</h3>
-                    <p className="text-2xl font-bold text-white font-mono tracking-tight">Port {serverPort}</p>
-                  </div>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleFetchResults(false)}
+                        disabled={status === 'loading'}
+                        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+                      >
+                        {status === 'loading' ? <RefreshCw className="animate-spin" size={20} /> : <Play size={20} />}
+                        {t('operations.fetchRace')}
+                      </button>
+                      <button
+                        onClick={() => handleFetchResults(true)}
+                        disabled={status === 'loading'}
+                        className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-purple-900/20 active:scale-95"
+                      >
+                        <History size={20} />
+                        {t('operations.fetchOverall')}
+                      </button>
+                      <button
+                        onClick={handleOpenOverlay}
+                        className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-slate-900/20 active:scale-95"
+                      >
+                        <ExternalLink size={20} />
+                        {t('operations.openOverlay')}
+                      </button>
+                    </div>
+                  </header>
 
-                  <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/30" />
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="p-3 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform">
-                        <Monitor className="text-blue-500" size={24} />
-                      </div>
-                      {config?.obsIp ? (
-                        <div className="flex items-center gap-1.5 bg-blue-500/10 px-2.5 py-1 rounded-full">
-                          <div className="w-1.5 h-1.5 bg-blue-500 rounded-full dot-pulse-success" />
-                          <span className="text-[10px] font-bold text-blue-500 uppercase tracking-tight">Connected</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group">
+                      <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500/30" />
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-emerald-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                          <CheckCircle2 className="text-emerald-500" size={24} />
                         </div>
-                      ) : (
-                        <span className="text-[10px] font-bold text-slate-500 bg-slate-800 px-2.5 py-1 rounded-full uppercase tracking-tight">Disconnected</span>
-                      )}
-                    </div>
-                    <h3 className="text-slate-400 text-sm font-medium mb-1">OBS 接続</h3>
-                    <p className="text-2xl font-bold text-white font-mono tracking-tight">{config?.obsIp || '未設定'}</p>
-                  </div>
-
-                  <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-purple-500/30" />
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="p-3 bg-purple-500/10 rounded-xl group-hover:scale-110 transition-transform">
-                        <Settings className="text-purple-500" size={24} />
-                      </div>
-                      {config?.groqApiKey ? (
-                        <div className="flex items-center gap-1.5 bg-purple-500/10 px-2.5 py-1 rounded-full">
-                          <div className="w-1.5 h-1.5 bg-purple-500 rounded-full dot-pulse-success" />
-                          <span className="text-[10px] font-bold text-purple-500 uppercase tracking-tight">Ready</span>
+                        <div className="flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-full">
+                          <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full dot-pulse-success" />
+                          <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-tight">Active</span>
                         </div>
-                      ) : (
-                        <span className="text-[10px] font-bold text-slate-500 bg-slate-800 px-2.5 py-1 rounded-full uppercase tracking-tight">Offline</span>
-                      )}
+                      </div>
+                      <h3 className="text-slate-400 text-sm font-medium mb-1">内蔵サーバー</h3>
+                      <p className="text-2xl font-bold text-white font-mono tracking-tight">Port {serverPort}</p>
                     </div>
-                    <h3 className="text-slate-400 text-sm font-medium mb-1">Groq API</h3>
-                    <p className="text-2xl font-bold text-white font-mono tracking-tight">
-                      {config?.groqApiKey ? 'VERIFIED' : 'NO KEY'}
-                    </p>
+
+                    <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group">
+                      <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/30" />
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-blue-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                          <Monitor className="text-blue-500" size={24} />
+                        </div>
+                        {config?.obsIp ? (
+                          <div className="flex items-center gap-1.5 bg-blue-500/10 px-2.5 py-1 rounded-full">
+                            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full dot-pulse-success" />
+                            <span className="text-[10px] font-bold text-blue-500 uppercase tracking-tight">Connected</span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-bold text-slate-500 bg-slate-800 px-2.5 py-1 rounded-full uppercase tracking-tight">Disconnected</span>
+                        )}
+                      </div>
+                      <h3 className="text-slate-400 text-sm font-medium mb-1">OBS 接続</h3>
+                      <p className="text-2xl font-bold text-white font-mono tracking-tight">{config?.obsIp || '未設定'}</p>
+                    </div>
+
+                    <div className="bg-[#1e293b] p-6 rounded-2xl border border-slate-800 shadow-xl relative overflow-hidden group">
+                      <div className="absolute top-0 left-0 w-full h-1 bg-purple-500/30" />
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="p-3 bg-purple-500/10 rounded-xl group-hover:scale-110 transition-transform">
+                          <Settings className="text-purple-500" size={24} />
+                        </div>
+                        {config?.groqApiKey ? (
+                          <div className="flex items-center gap-1.5 bg-purple-500/10 px-2.5 py-1 rounded-full">
+                            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full dot-pulse-success" />
+                            <span className="text-[10px] font-bold text-purple-500 uppercase tracking-tight">Ready</span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-bold text-slate-500 bg-slate-800 px-2.5 py-1 rounded-full uppercase tracking-tight">Offline</span>
+                        )}
+                      </div>
+                      <h3 className="text-slate-400 text-sm font-medium mb-1">Groq API</h3>
+                      <p className="text-2xl font-bold text-white font-mono tracking-tight">
+                        {config?.groqApiKey ? 'VERIFIED' : 'NO KEY'}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Scores Table */}
-                  <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative">
-                    <AnimatePresence>
-                      {status === 'loading' && <ScanningOverlay />}
-                    </AnimatePresence>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* Scores Table */}
+                    <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative">
+                      <AnimatePresence>
+                        {status === 'loading' && <ScanningOverlay />}
+                      </AnimatePresence>
 
+                      <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                        <h3 className="font-bold text-lg flex items-center gap-2">
+                          <BarChart3 size={20} className="text-blue-500" />
+                          現在のスコア
+                        </h3>
+                        <div className="flex gap-2">
+                          {isEditing ? (
+                            <>
+                              <button
+                                onClick={handleAddTeam}
+                                className="text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                              >
+                                追加
+                              </button>
+                              <button
+                                onClick={() => handleSaveEditedScores()}
+                                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                              >
+                                保存
+                              </button>
+                              <button
+                                onClick={() => setIsEditing(false)}
+                                className="text-sm text-slate-400 hover:text-slate-300 flex items-center gap-1 transition-colors"
+                              >
+                                キャンセル
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={handleStartEdit}
+                                className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                              >
+                                編集
+                              </button>
+                              <button
+                                onClick={handleResetScores}
+                                className="text-sm text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors"
+                              >
+                                <Trash2 size={14} />
+                                リセット
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="p-0">
+                        <table className="w-full text-left border-collapse">
+                          <thead>
+                            <tr className="bg-slate-800/50 text-slate-400 text-xs uppercase tracking-wider">
+                              <th className="px-6 py-3 font-semibold">チーム名</th>
+                              <th className="px-6 py-3 font-semibold text-right">スコア</th>
+                              {isEditing && <th className="px-6 py-3 font-semibold text-right">操作</th>}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800">
+                            <AnimatePresence mode="popLayout">
+                              {(isEditing ? editingScores : [...scores].sort((a, b) => b.score - a.score)).length > 0 ? (isEditing ? editingScores : [...scores].sort((a, b) => b.score - a.score)).map((team, i) => (
+                                <ScoreItem
+                                  key={team.name || team.team || i}
+                                  team={team}
+                                  index={i}
+                                  isEditing={isEditing}
+                                  onRemove={handleRemoveTeam}
+                                  onChange={handleScoreChange}
+                                  onSetCurrentPlayer={() => {
+                                    const newScores = scores.map(t => ({
+                                      ...t,
+                                      isCurrentPlayer: (t.name || t.team) === (team.name || team.team)
+                                    }))
+                                    handleSaveEditedScores(newScores)
+                                  }}
+                                />
+                              )) : (
+                                <motion.tr
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  key="empty"
+                                >
+                                  <td colSpan={isEditing ? 3 : 2} className="px-6 py-12 text-center text-slate-500 italic">
+                                    データがありません
+                                  </td>
+                                </motion.tr>
+                              )}
+                            </AnimatePresence>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Logs */}
+                    <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col">
+                      <div className="p-6 border-b border-slate-800 flex justify-between items-center">
+                        <h3 className="font-bold text-lg flex items-center gap-2">
+                          <History size={20} className="text-purple-500" />
+                          アクティビティログ
+                        </h3>
+                      </div>
+                      <div className="p-6 space-y-4 flex-1 overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-slate-700">
+                        {logs.length > 0 ? logs.map((log, i) => (
+                          <div key={i} className="flex gap-4 items-start animate-in fade-in slide-in-from-left-2 duration-300">
+                            <div className={cn(
+                              "w-2 h-2 mt-2 rounded-full shrink-0",
+                              log.type === 'success' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" :
+                                log.type === 'error' ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" :
+                                  "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
+                            )} />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-slate-300 break-words">{log.message}</p>
+                              <p className="text-xs text-slate-500">{log.timestamp}</p>
+                            </div>
+                          </div>
+                        )) : (
+                          <p className="text-center text-slate-500 py-8 italic">ログはありません</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'reopen' && (
+                <motion.div
+                  key="reopen"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-8"
+                >
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h2 className="text-3xl font-bold text-white">リオープンマネージャー</h2>
+                      <p className="text-slate-400 mt-1">過去のスコア状態を保存・復元できます</p>
+                    </div>
+                    <button
+                      onClick={fetchSlots}
+                      className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400"
+                    >
+                      <RefreshCw size={20} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array.from({ length: 10 }).map((_, i) => {
+                      const slot = slots.find(s => s.slotId === i)
+                      return (
+                        <div key={i} className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col">
+                          <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Slot {i + 1}</span>
+                            {slot && (
+                              <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">
+                                {new Date(slot.timestamp).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                          <div className="p-6 flex-1">
+                            {slot ? (
+                              <div className="space-y-4">
+                                <h4 className="font-bold text-lg text-slate-200 truncate">{slot.name}</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                                    <div className="text-[10px] text-slate-500 uppercase">チーム数</div>
+                                    <div className="text-sm font-bold text-blue-400">{slot.scores.length}</div>
+                                  </div>
+                                  <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
+                                    <div className="text-[10px] text-slate-500 uppercase">合計点</div>
+                                    <div className="text-sm font-bold text-emerald-400">
+                                      {slot.scores.reduce((sum: number, s: any) => sum + s.score, 0)}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="h-full flex flex-col items-center justify-center py-4 text-slate-600">
+                                <Save size={32} className="mb-2 opacity-20" />
+                                <p className="text-sm italic">空のスロット</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-4 bg-slate-800/30 border-t border-slate-800 flex flex-col gap-2">
+                            {slot ? (
+                              <>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleLoadSlot(i)}
+                                    className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-blue-900/20"
+                                  >
+                                    ロード
+                                  </button>
+                                  <button
+                                    onClick={() => handleAddScoresFromSlot(i)}
+                                    title="現在のスコアに加算"
+                                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-emerald-900/20"
+                                  >
+                                    加点
+                                  </button>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleSaveSlot(i)}
+                                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded-lg text-sm transition-colors"
+                                  >
+                                    上書き
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteSlot(i)}
+                                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-2 rounded-lg text-sm transition-colors"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => handleSaveSlot(i)}
+                                className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-900/30 active:scale-95 flex items-center justify-center gap-2 group"
+                              >
+                                <Save size={18} className="group-hover:rotate-12 transition-transform" />
+                                現在の状態を保存
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'mappings' && (
+                <motion.div
+                  key="mappings"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-8"
+                >
+                  <header>
+                    <h2 className="text-3xl font-bold text-white mb-2">プレイヤーマッピング</h2>
+                    <p className="text-slate-400">特定のプレイヤー名を常に特定のチームとして扱います（OCR誤認識対策）</p>
+                  </header>
+
+                  <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
                     <div className="p-6 border-b border-slate-800 flex justify-between items-center">
                       <h3 className="font-bold text-lg flex items-center gap-2">
-                        <BarChart3 size={20} className="text-blue-500" />
-                        現在のスコア
+                        <Users size={20} className="text-blue-500" />
+                        マッピング一覧
                       </h3>
                       <div className="flex gap-2">
-                        {isEditing ? (
+                        {isEditingMappings ? (
                           <>
                             <button
-                              onClick={handleAddTeam}
-                              className="text-sm text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                              onClick={handleAddMapping}
+                              className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                             >
                               追加
                             </button>
                             <button
-                              onClick={() => handleSaveEditedScores()}
-                              className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                              onClick={handleSaveMappings}
+                              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                             >
+                              <Save size={16} />
                               保存
                             </button>
                             <button
-                              onClick={() => setIsEditing(false)}
-                              className="text-sm text-slate-400 hover:text-slate-300 flex items-center gap-1 transition-colors"
+                              onClick={() => setIsEditingMappings(false)}
+                              className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                             >
                               キャンセル
                             </button>
                           </>
                         ) : (
-                          <>
-                            <button
-                              onClick={handleStartEdit}
-                              className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
-                            >
-                              編集
-                            </button>
-                            <button
-                              onClick={handleResetScores}
-                              className="text-sm text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors"
-                            >
-                              <Trash2 size={14} />
-                              リセット
-                            </button>
-                          </>
+                          <button
+                            onClick={handleStartEditMappings}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            編集
+                          </button>
                         )}
                       </div>
                     </div>
-                    <div className="p-0">
-                      <table className="w-full text-left border-collapse">
+                    <div className="p-6">
+                      <table className="w-full">
                         <thead>
-                          <tr className="bg-slate-800/50 text-slate-400 text-xs uppercase tracking-wider">
-                            <th className="px-6 py-3 font-semibold">チーム名</th>
-                            <th className="px-6 py-3 font-semibold text-right">スコア</th>
-                            {isEditing && <th className="px-6 py-3 font-semibold text-right">操作</th>}
+                          <tr className="text-left text-slate-500 text-sm border-b border-slate-800">
+                            <th className="pb-4 font-medium">プレイヤー名</th>
+                            <th className="pb-4 font-medium">チーム名</th>
+                            {isEditingMappings && <th className="pb-4 font-medium w-16">操作</th>}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800">
-                          <AnimatePresence mode="popLayout">
-                            {(isEditing ? editingScores : [...scores].sort((a, b) => b.score - a.score)).length > 0 ? (isEditing ? editingScores : [...scores].sort((a, b) => b.score - a.score)).map((team, i) => (
-                              <ScoreItem
-                                key={team.name || team.team || i}
-                                team={team}
-                                index={i}
-                                isEditing={isEditing}
-                                onRemove={handleRemoveTeam}
-                                onChange={handleScoreChange}
-                                onSetCurrentPlayer={() => {
-                                  const newScores = scores.map(t => ({
-                                    ...t,
-                                    isCurrentPlayer: (t.name || t.team) === (team.name || team.team)
-                                  }))
-                                  handleSaveEditedScores(newScores)
-                                }}
-                              />
-                            )) : (
-                              <motion.tr
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                key="empty"
-                              >
-                                <td colSpan={isEditing ? 3 : 2} className="px-6 py-12 text-center text-slate-500 italic">
-                                  データがありません
+                          {isEditingMappings ? (
+                            editingMappings.map((mapping, index) => (
+                              <tr key={index} className="group">
+                                <td className="py-4 pr-4">
+                                  <input
+                                    type="text"
+                                    value={mapping.name}
+                                    onChange={(e) => handleMappingChange(index, 'name', e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                    placeholder="プレイヤー名"
+                                  />
                                 </td>
-                              </motion.tr>
-                            )}
-                          </AnimatePresence>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Logs */}
-                  <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col">
-                    <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                      <h3 className="font-bold text-lg flex items-center gap-2">
-                        <History size={20} className="text-purple-500" />
-                        アクティビティログ
-                      </h3>
-                    </div>
-                    <div className="p-6 space-y-4 flex-1 overflow-y-auto max-h-[400px] scrollbar-thin scrollbar-thumb-slate-700">
-                      {logs.length > 0 ? logs.map((log, i) => (
-                        <div key={i} className="flex gap-4 items-start animate-in fade-in slide-in-from-left-2 duration-300">
-                          <div className={cn(
-                            "w-2 h-2 mt-2 rounded-full shrink-0",
-                            log.type === 'success' ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" :
-                              log.type === 'error' ? "bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" :
-                                "bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"
-                          )} />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-slate-300 break-words">{log.message}</p>
-                            <p className="text-xs text-slate-500">{log.timestamp}</p>
-                          </div>
-                        </div>
-                      )) : (
-                        <p className="text-center text-slate-500 py-8 italic">ログはありません</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'reopen' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h2 className="text-3xl font-bold text-white">リオープンマネージャー</h2>
-                    <p className="text-slate-400 mt-1">過去のスコア状態を保存・復元できます</p>
-                  </div>
-                  <button
-                    onClick={fetchSlots}
-                    className="p-2 hover:bg-slate-800 rounded-lg transition-colors text-slate-400"
-                  >
-                    <RefreshCw size={20} />
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {Array.from({ length: 10 }).map((_, i) => {
-                    const slot = slots.find(s => s.slotId === i)
-                    return (
-                      <div key={i} className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col">
-                        <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
-                          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Slot {i + 1}</span>
-                          {slot && (
-                            <span className="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">
-                              {new Date(slot.timestamp).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
-                        <div className="p-6 flex-1">
-                          {slot ? (
-                            <div className="space-y-4">
-                              <h4 className="font-bold text-lg text-slate-200 truncate">{slot.name}</h4>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
-                                  <div className="text-[10px] text-slate-500 uppercase">チーム数</div>
-                                  <div className="text-sm font-bold text-blue-400">{slot.scores.length}</div>
-                                </div>
-                                <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
-                                  <div className="text-[10px] text-slate-500 uppercase">合計点</div>
-                                  <div className="text-sm font-bold text-emerald-400">
-                                    {slot.scores.reduce((sum: number, s: any) => sum + s.score, 0)}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="h-full flex flex-col items-center justify-center py-4 text-slate-600">
-                              <Save size={32} className="mb-2 opacity-20" />
-                              <p className="text-sm italic">空のスロット</p>
-                            </div>
-                          )}
-                        </div>
-                        <div className="p-4 bg-slate-800/30 border-t border-slate-800 flex flex-col gap-2">
-                          {slot ? (
-                            <>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleLoadSlot(i)}
-                                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-blue-900/20"
-                                >
-                                  ロード
-                                </button>
-                                <button
-                                  onClick={() => handleAddScoresFromSlot(i)}
-                                  title="現在のスコアに加算"
-                                  className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg text-sm font-bold transition-colors shadow-lg shadow-emerald-900/20"
-                                >
-                                  加点
-                                </button>
-                              </div>
-                              <div className="flex gap-2">
-                                <button
-                                  onClick={() => handleSaveSlot(i)}
-                                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 py-2 rounded-lg text-sm transition-colors"
-                                >
-                                  上書き
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteSlot(i)}
-                                  className="bg-red-500/10 hover:bg-red-500/20 text-red-400 px-3 py-2 rounded-lg text-sm transition-colors"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() => handleSaveSlot(i)}
-                              className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-900/30 active:scale-95 flex items-center justify-center gap-2 group"
-                            >
-                              <Save size={18} className="group-hover:rotate-12 transition-transform" />
-                              現在の状態を保存
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'mappings' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <header>
-                  <h2 className="text-3xl font-bold text-white mb-2">プレイヤーマッピング</h2>
-                  <p className="text-slate-400">特定のプレイヤー名を常に特定のチームとして扱います（OCR誤認識対策）</p>
-                </header>
-
-                <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
-                  <div className="p-6 border-b border-slate-800 flex justify-between items-center">
-                    <h3 className="font-bold text-lg flex items-center gap-2">
-                      <Users size={20} className="text-blue-500" />
-                      マッピング一覧
-                    </h3>
-                    <div className="flex gap-2">
-                      {isEditingMappings ? (
-                        <>
-                          <button
-                            onClick={handleAddMapping}
-                            className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                          >
-                            追加
-                          </button>
-                          <button
-                            onClick={handleSaveMappings}
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                          >
-                            <Save size={16} />
-                            保存
-                          </button>
-                          <button
-                            onClick={() => setIsEditingMappings(false)}
-                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                          >
-                            キャンセル
-                          </button>
-                        </>
-                      ) : (
-                        <button
-                          onClick={handleStartEditMappings}
-                          className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          編集
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <div className="p-6">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left text-slate-500 text-sm border-b border-slate-800">
-                          <th className="pb-4 font-medium">プレイヤー名</th>
-                          <th className="pb-4 font-medium">チーム名</th>
-                          {isEditingMappings && <th className="pb-4 font-medium w-16">操作</th>}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800">
-                        {isEditingMappings ? (
-                          editingMappings.map((mapping, index) => (
-                            <tr key={index} className="group">
-                              <td className="py-4 pr-4">
-                                <input
-                                  type="text"
-                                  value={mapping.name}
-                                  onChange={(e) => handleMappingChange(index, 'name', e.target.value)}
-                                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                                  placeholder="プレイヤー名"
-                                />
-                              </td>
-                              <td className="py-4 pr-4">
-                                <input
-                                  type="text"
-                                  value={mapping.team}
-                                  onChange={(e) => handleMappingChange(index, 'team', e.target.value)}
-                                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                                  placeholder="チーム名"
-                                />
-                              </td>
-                              <td className="py-4">
-                                <button
-                                  onClick={() => handleRemoveMapping(index)}
-                                  className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
-                                >
-                                  <Trash2 size={18} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          Object.entries(playerMappings).length > 0 ? (
-                            Object.entries(playerMappings).map(([name, team]) => (
-                              <tr key={name} className="group">
-                                <td className="py-4 text-white font-medium">{name}</td>
+                                <td className="py-4 pr-4">
+                                  <input
+                                    type="text"
+                                    value={mapping.team}
+                                    onChange={(e) => handleMappingChange(index, 'team', e.target.value)}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                    placeholder="チーム名"
+                                  />
+                                </td>
                                 <td className="py-4">
-                                  <span className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full text-sm font-medium border border-blue-500/20">
-                                    {team}
-                                  </span>
+                                  <button
+                                    onClick={() => handleRemoveMapping(index)}
+                                    className="p-2 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                  >
+                                    <Trash2 size={18} />
+                                  </button>
                                 </td>
                               </tr>
                             ))
                           ) : (
-                            <tr>
-                              <td colSpan={2} className="py-12 text-center text-slate-500">
-                                マッピングが設定されていません
-                              </td>
-                            </tr>
-                          )
-                        )}
-                      </tbody>
-                    </table>
+                            Object.entries(playerMappings).length > 0 ? (
+                              Object.entries(playerMappings).map(([name, team]) => (
+                                <tr key={name} className="group">
+                                  <td className="py-4 text-white font-medium">{name}</td>
+                                  <td className="py-4">
+                                    <span className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full text-sm font-medium border border-blue-500/20">
+                                      {team}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={2} className="py-12 text-center text-slate-500">
+                                  マッピングが設定されていません
+                                </td>
+                              </tr>
+                            )
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                </div>
-              </div>
-            )}
+                </motion.div>
+              )}
 
-            {activeTab === 'overlay' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <header>
-                  <h2 className="text-3xl font-bold text-white mb-2">オーバーレイ設定</h2>
-                  <p className="text-slate-400">配信画面に表示するスコアボードの外観をカスタマイズします</p>
-                </header>
+              {activeTab === 'overlay' && (
+                <motion.div
+                  key="overlay"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-8"
+                >
+                  <header>
+                    <h2 className="text-3xl font-bold text-white mb-2">オーバーレイ設定</h2>
+                    <p className="text-slate-400">配信画面に表示するスコアボードの外観をカスタマイズします</p>
+                  </header>
 
-                <div className="grid grid-cols-1 gap-8">
-                  <div className="space-y-6">
-                    <div className="bg-[#1e293b] rounded-3xl p-8 border border-slate-800 shadow-xl">
-                      <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                        <Layout className="text-blue-500" size={24} />
-                        表示設定
-                      </h3>
-                      <form
-                        onSubmit={handleSaveConfig}
-                        onChange={() => setIsDirty(true)}
-                        className="space-y-6"
-                      >
-                        <Toggle
-                          name="keepScoreOnRestart"
-                          defaultChecked={config?.scoreSettings?.keepScoreOnRestart ?? true}
-                          label="アプリ再起動時にスコアを保持する"
-                          help="無効にすると、アプリを閉じて再度開いた時にスコアがリセットされます"
-                        />
-                        <Toggle
-                          name="showRemainingRaces"
-                          defaultChecked={config?.showRemainingRaces ?? true}
-                          label="残りレース数を表示"
-                          help="1位のチームの横に残りレース数を表示します"
-                        />
+                  <div className="grid grid-cols-1 gap-8">
+                    <div className="space-y-6">
+                      <div className="bg-[#1e293b] rounded-3xl p-8 border border-slate-800 shadow-xl">
+                        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                          <Layout className="text-blue-500" size={24} />
+                          表示設定
+                        </h3>
+                        <form
+                          onSubmit={handleSaveConfig}
+                          onChange={() => setIsDirty(true)}
+                          className="space-y-6"
+                        >
+                          <Toggle
+                            name="keepScoreOnRestart"
+                            defaultChecked={config?.scoreSettings?.keepScoreOnRestart ?? true}
+                            label="アプリ再起動時にスコアを保持する"
+                            help="無効にすると、アプリを閉じて再度開いた時にスコアがリセットされます"
+                          />
+                          <Toggle
+                            name="showRemainingRaces"
+                            defaultChecked={config?.showRemainingRaces ?? true}
+                            label="残りレース数を表示"
+                            help="1位のチームの横に残りレース数を表示します"
+                          />
 
-                        <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
-                          <label className="text-sm font-medium text-slate-200">オーバーレイテーマ</label>
-                          <select
-                            name="overlayTheme"
-                            defaultValue={config?.overlayTheme || 'default'}
-                            onChange={(e) => {
-                              setSelectedOverlayTheme(e.target.value)
-                              setIsDirty(true)
-                            }}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                          <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
+                            <label className="text-sm font-medium text-slate-200">オーバーレイテーマ</label>
+                            <select
+                              name="overlayTheme"
+                              defaultValue={config?.overlayTheme || 'default'}
+                              onChange={(e) => {
+                                setSelectedOverlayTheme(e.target.value)
+                                setIsDirty(true)
+                              }}
+                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                            >
+                              <option value="default">デフォルト</option>
+                              <option value="mkw">MK8DX風</option>
+                            </select>
+                            <p className="text-xs text-slate-500">オーバーレイの見た目を変更します。</p>
+                          </div>
+
+                          {/* デフォルトテーマ設定 */}
+                          {selectedOverlayTheme === 'default' && (
+                            <div className="space-y-6 pt-4 border-t border-slate-700/50">
+                              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
+                                <Palette size={16} className="text-blue-400" />
+                                デフォルトテーマ配色設定
+                              </h4>
+                              
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
+                                  <label className="text-sm font-medium text-slate-200">スコア加算エフェクト色</label>
+                                  <div className="flex flex-col gap-2">
+                                    <ColorPicker
+                                      name="scoreEffect"
+                                      initialValue={config?.overlayColors?.scoreEffect || '#22c55e'}
+                                      onChange={() => setIsDirty(true)}
+                                    />
+                                  </div>
+                                  <p className="text-[10px] text-slate-500">点数が加算された時の光の色を変更します。</p>
+                                </div>
+
+                                <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
+                                  <label className="text-sm font-medium text-slate-200">自チームの強調スタイル</label>
+                                  <select
+                                    name="ownTeamStyle"
+                                    defaultValue={config?.overlayColors?.ownTeamStyle || 'rainbow'}
+                                    onChange={(e) => {
+                                      setSelectedOwnTeamStyle(e.target.value)
+                                      setIsDirty(true)
+                                    }}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                                  >
+                                    <option value="solid">単色</option>
+                                    <option value="rainbow">虹色</option>
+                                    <option value="gradient">グラデーション</option>
+                                  </select>
+                                  <p className="text-[10px] text-slate-500">自チーム（または選択中）の枠線のスタイル。</p>
+                                </div>
+                              </div>
+
+                              {/* 条件付き表示: 自チームの詳細設定 */}
+                              {(selectedOwnTeamStyle === 'solid' || selectedOwnTeamStyle === 'gradient') && (
+                                <motion.div 
+                                  initial={{ opacity: 0, y: -10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className="p-4 bg-[#0f172a] rounded-xl border border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-6"
+                                >
+                                  <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-200">自チームの色 (単色)</label>
+                                    <ColorPicker
+                                      name="ownTeamColor"
+                                      initialValue={config?.overlayColors?.ownTeamColor || '#fbbf24'}
+                                      onChange={() => setIsDirty(true)}
+                                    />
+                                  </div>
+
+                                  {selectedOwnTeamStyle === 'gradient' && (
+                                    <div className="space-y-2">
+                                      <label className="text-sm font-medium text-slate-200">グラデーション・バリエーション</label>
+                                      <select
+                                        name="ownTeamGradient"
+                                        defaultValue={config?.overlayColors?.ownTeamGradient || 'blue'}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                                      >
+                                        <option value="blue">ブルー（青〜水色）</option>
+                                        <option value="pink">ピンク（ピンク〜紫）</option>
+                                        <option value="orange">オレンジ（オレンジ〜黄）</option>
+                                        <option value="emerald">エメラルド（緑〜青碧）</option>
+                                      </select>
+                                    </div>
+                                  )}
+                                </motion.div>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="pt-4">
+                            <button
+                              type="submit"
+                              className="w-full bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+                            >
+                              設定を保存
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === 'settings' && (
+                <motion.div
+                  key="settings"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-8"
+                >
+                  <header>
+                    <h2 className="text-3xl font-bold text-white mb-2">{t('config.title')}</h2>
+                    <p className="text-slate-400">アプリケーションの動作と外観を設定します</p>
+                  </header>
+
+                  {updateInfo && (
+                    <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-6 flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="p-3 bg-blue-600 rounded-xl">
+                            <Download className="text-white" size={24} />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-white">新しいバージョンが利用可能です</h3>
+                            <p className="text-blue-400 text-sm">v{appVersion} → v{updateInfo.latestVersion}</p>
+                          </div>
+                        </div>
+                        {isUpdateDownloaded ? (
+                          <button
+                            onClick={handleQuitAndInstall}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
                           >
-                            <option value="default">デフォルト</option>
-                            <option value="mkw">MK8DX風</option>
-                          </select>
-                          <p className="text-xs text-slate-500">オーバーレイの見た目を変更します。</p>
+                            再起動して適用
+                          </button>
+                        ) : isDownloadingUpdate ? (
+                          <div className="text-right">
+                            <p className="text-xs text-blue-400 mb-1 font-mono">{Math.round(updateProgress)}%</p>
+                            <div className="w-32 h-2 bg-slate-800 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-blue-500 transition-all duration-300"
+                                style={{ width: `${updateProgress}%` }}
+                              />
+                            </div>
+                          </div>
+                        ) : updateInfo.isAutoUpdater ? (
+                          <button
+                            onClick={handleStartDownloadUpdate}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
+                          >
+                            アップデートを開始
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => window.electron.ipcRenderer.invoke('open-external', updateInfo.url)}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
+                          >
+                            ブラウザでダウンロード
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <form
+                    onSubmit={handleSaveConfig}
+                    onChange={() => setIsDirty(true)}
+                    className="space-y-8 pb-12 relative"
+                  >
+                    <div className="sticky top-0 z-10 flex justify-between items-center bg-[#0f172a]/80 backdrop-blur-md p-4 mb-4 rounded-xl border border-slate-800 shadow-2xl">
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          "w-3 h-3 rounded-full animate-pulse",
+                          isConfigInvalid ? "bg-amber-500" : "bg-emerald-500"
+                        )} />
+                        <span className="text-sm font-medium text-slate-300">
+                          {isConfigInvalid ? "未完了の設定があります" : "設定はすべて完了しています"}
+                        </span>
+                      </div>
+                      <button
+                        type="submit"
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/40 active:scale-95 flex items-center gap-2"
+                      >
+                        <Save size={18} />
+                        {t('config.saveButton')}
+                      </button>
+                    </div>
+
+                    <section className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6">
+                      <h3 className="text-lg font-bold flex items-center gap-2 text-blue-400">
+                        <Monitor size={20} />
+                        OBS WebSocket 設定
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-400">{t('config.obsIp')}</label>
+                          <input
+                            name="obsIp"
+                            type="text"
+                            defaultValue={config?.obsIp}
+                            className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-400">{t('config.obsPort')}</label>
+                          <input
+                            name="obsPort"
+                            type="number"
+                            defaultValue={config?.obsPort}
+                            className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-400">{t('config.obsPassword')}</label>
+                        <input
+                          name="obsPassword"
+                          type="password"
+                          defaultValue={config?.obsPassword}
+                          placeholder={t('config.obsPasswordPlaceholder')}
+                          className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-400">{t('config.obsSourceName')}</label>
+                        <input
+                          name="obsSourceName"
+                          type="text"
+                          defaultValue={config?.obsSourceName}
+                          placeholder={t('config.obsSourceNamePlaceholder')}
+                          className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => window.electron.ipcRenderer.invoke('refresh-obs-browser-sources')}
+                        className="w-full bg-slate-800/50 hover:bg-slate-800 text-slate-300 py-3 rounded-xl font-medium transition-all border border-slate-700"
+                      >
+                        OBSブラウザソースを強制リフレッシュ
+                      </button>
+                    </section>
+
+                    <section className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6">
+                      <h3 className="text-lg font-bold flex items-center gap-2 text-green-400">
+                        <Zap size={20} />
+                        AI 解析設定 (Groq)
+                      </h3>
+
+                      <input type="hidden" name="aiProvider" value="groq" />
+
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-slate-400">{t('config.groqApiKey')}</label>
+                          <input
+                            name="groqApiKey"
+                            type="password"
+                            defaultValue={config?.groqApiKey}
+                            placeholder={t('config.groqApiKeyPlaceholder')}
+                            className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all"
+                          />
+                          <p className="text-xs text-slate-500 italic">
+                            ※ 現在は爆速かつ無料で利用可能な Groq (Llama 4 Scout) のみを使用します。
+                          </p>
                         </div>
 
-                        {/* デフォルトテーマ設定 */}
-                        {selectedOverlayTheme === 'default' && (
-                          <div className="space-y-6 pt-4 border-t border-slate-700/50">
-                            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
-                              <Palette size={16} className="text-blue-400" />
-                              デフォルトテーマ配色設定
-                            </h4>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
-                                <label className="text-sm font-medium text-slate-200">スコア加算エフェクト色</label>
-                                <div className="flex flex-col gap-2">
-                                  <ColorPicker
-                                    name="scoreEffect"
-                                    initialValue={config?.overlayColors?.scoreEffect || '#22c55e'}
-                                    onChange={() => setIsDirty(true)}
-                                  />
-                                </div>
-                                <p className="text-[10px] text-slate-500">点数が加算された時の光の色を変更します。</p>
-                              </div>
-
-                              <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
-                                <label className="text-sm font-medium text-slate-200">自チームの強調スタイル</label>
-                                <select
-                                  name="ownTeamStyle"
-                                  defaultValue={config?.overlayColors?.ownTeamStyle || 'rainbow'}
-                                  onChange={(e) => {
-                                    setSelectedOwnTeamStyle(e.target.value)
-                                    setIsDirty(true)
-                                  }}
-                                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
-                                >
-                                  <option value="solid">単色</option>
-                                  <option value="rainbow">虹色</option>
-                                  <option value="gradient">グラデーション</option>
-                                </select>
-                                <p className="text-[10px] text-slate-500">自チーム（または選択中）の枠線のスタイル。</p>
-                              </div>
-                            </div>
-
-                            {/* 条件付き表示: 自チームの詳細設定 */}
-                            {(selectedOwnTeamStyle === 'solid' || selectedOwnTeamStyle === 'gradient') && (
-                              <motion.div 
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="p-4 bg-[#0f172a] rounded-xl border border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-6"
+                        <div className="border border-slate-700 rounded-xl overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => setShowGroqInstructions(!showGroqInstructions)}
+                            className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 transition-colors text-sm font-medium text-slate-300"
+                          >
+                            <span>Groq APIキーを取得する方法</span>
+                            <ChevronRight
+                              size={16}
+                              className={cn("transition-transform duration-200", showGroqInstructions && "rotate-90")}
+                            />
+                          </button>
+                          <AnimatePresence>
+                            {showGroqInstructions && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
                               >
-                                <div className="space-y-2">
-                                  <label className="text-sm font-medium text-slate-200">自チームの色 (単色)</label>
-                                  <ColorPicker
-                                    name="ownTeamColor"
-                                    initialValue={config?.overlayColors?.ownTeamColor || '#fbbf24'}
-                                    onChange={() => setIsDirty(true)}
-                                  />
+                                <div className="p-4 bg-slate-900 border-t border-slate-800 space-y-3 text-sm text-slate-400">
+                                  <p className="flex gap-2">
+                                    <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">1</span>
+                                    <span className="flex-1">
+                                      <a
+                                        href="https://console.groq.com/keys"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-400 hover:underline inline-flex items-center gap-1"
+                                      >
+                                        Groq Cloud Console <ExternalLink size={12} />
+                                      </a>
+                                      にアクセスします。
+                                    </span>
+                                  </p>
+                                  <p className="flex gap-2">
+                                    <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">2</span>
+                                    <span className="flex-1">Googleアカウント、またはメールアドレスでサインアップ/ログインします。</span>
+                                  </p>
+                                  <p className="flex gap-2">
+                                    <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">3</span>
+                                    <span className="flex-1">「Create API Key」ボタンを押します。</span>
+                                  </p>
+                                  <p className="flex gap-2">
+                                    <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">4</span>
+                                    <span className="flex-1">適当な名前（例: MK8DX）を付けて作成し、表示されたコード（gsk-...）をコピーして上の入力欄に貼り付けます。</span>
+                                  </p>
                                 </div>
-
-                                {selectedOwnTeamStyle === 'gradient' && (
-                                  <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-200">グラデーション・バリエーション</label>
-                                    <select
-                                      name="ownTeamGradient"
-                                      defaultValue={config?.overlayColors?.ownTeamGradient || 'blue'}
-                                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
-                                    >
-                                      <option value="blue">ブルー（青〜水色）</option>
-                                      <option value="pink">ピンク（ピンク〜紫）</option>
-                                      <option value="orange">オレンジ（オレンジ〜黄）</option>
-                                      <option value="emerald">エメラルド（緑〜青碧）</option>
-                                    </select>
-                                  </div>
-                                )}
                               </motion.div>
                             )}
-                          </div>
-                        )}
-
-                        <div className="pt-4">
-                          <button
-                            type="submit"
-                            className="w-full bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
-                          >
-                            設定を保存
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'settings' && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <header>
-                  <h2 className="text-3xl font-bold text-white mb-2">{t('config.title')}</h2>
-                  <p className="text-slate-400">アプリケーションの動作と外観を設定します</p>
-                </header>
-
-                {updateInfo && (
-                  <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-6 flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="p-3 bg-blue-600 rounded-xl">
-                          <Download className="text-white" size={24} />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-white">新しいバージョンが利用可能です</h3>
-                          <p className="text-blue-400 text-sm">v{appVersion} → v{updateInfo.latestVersion}</p>
+                          </AnimatePresence>
                         </div>
                       </div>
-                      {isUpdateDownloaded ? (
-                        <button
-                          onClick={handleQuitAndInstall}
-                          className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
-                        >
-                          再起動して適用
-                        </button>
-                      ) : isDownloadingUpdate ? (
-                        <div className="text-right">
-                          <p className="text-xs text-blue-400 mb-1 font-mono">{Math.round(updateProgress)}%</p>
-                          <div className="w-32 h-2 bg-slate-800 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-blue-500 transition-all duration-300"
-                              style={{ width: `${updateProgress}%` }}
-                            />
-                          </div>
-                        </div>
-                      ) : updateInfo.isAutoUpdater ? (
-                        <button
-                          onClick={handleStartDownloadUpdate}
-                          className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
-                        >
-                          アップデートを開始
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => window.electron.ipcRenderer.invoke('open-external', updateInfo.url)}
-                          className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
-                        >
-                          ブラウザでダウンロード
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
+                    </section>
 
-                <form
-                  onSubmit={handleSaveConfig}
-                  onChange={() => setIsDirty(true)}
-                  className="space-y-8 pb-12 relative"
+                    <div className="flex justify-end pt-4">
+                      <button
+                        type="submit"
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/40 active:scale-95 flex items-center gap-2"
+                      >
+                        <Save size={20} />
+                        {t('config.saveButton')}
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+
+              {activeTab === 'about' && (
+                <motion.div
+                  key="about"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                  className="max-w-2xl mx-auto text-center space-y-8 py-12"
                 >
-                  <div className="sticky top-0 z-10 flex justify-between items-center bg-[#0f172a]/80 backdrop-blur-md p-4 mb-4 rounded-xl border border-slate-800 shadow-2xl">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        "w-3 h-3 rounded-full animate-pulse",
-                        isConfigInvalid ? "bg-amber-500" : "bg-emerald-500"
-                      )} />
-                      <span className="text-sm font-medium text-slate-300">
-                        {isConfigInvalid ? "未完了の設定があります" : "設定はすべて完了しています"}
-                      </span>
-                    </div>
-                    <button
-                      type="submit"
-                      className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/40 active:scale-95 flex items-center gap-2"
-                    >
-                      <Save size={18} />
-                      {t('config.saveButton')}
-                    </button>
+                  <div className="w-24 h-24 bg-blue-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-900/40 mx-auto mb-8">
+                    <Monitor className="text-white" size={48} />
                   </div>
-
-                  <section className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6">
-                    <h3 className="text-lg font-bold flex items-center gap-2 text-blue-400">
-                      <Monitor size={20} />
-                      OBS WebSocket 設定
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-400">{t('config.obsIp')}</label>
-                        <input
-                          name="obsIp"
-                          type="text"
-                          defaultValue={config?.obsIp}
-                          className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-400">{t('config.obsPort')}</label>
-                        <input
-                          name="obsPort"
-                          type="number"
-                          defaultValue={config?.obsPort}
-                          className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-400">{t('config.obsPassword')}</label>
-                      <input
-                        name="obsPassword"
-                        type="password"
-                        defaultValue={config?.obsPassword}
-                        placeholder={t('config.obsPasswordPlaceholder')}
-                        className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-400">{t('config.obsSourceName')}</label>
-                      <input
-                        name="obsSourceName"
-                        type="text"
-                        defaultValue={config?.obsSourceName}
-                        placeholder={t('config.obsSourceNamePlaceholder')}
-                        className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => window.electron.ipcRenderer.invoke('refresh-obs-browser-sources')}
-                      className="w-full bg-slate-800/50 hover:bg-slate-800 text-slate-300 py-3 rounded-xl font-medium transition-all border border-slate-700"
-                    >
-                      OBSブラウザソースを強制リフレッシュ
-                    </button>
-                  </section>
-
-                  <section className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6">
-                    <h3 className="text-lg font-bold flex items-center gap-2 text-green-400">
-                      <Zap size={20} />
-                      AI 解析設定 (Groq)
-                    </h3>
-
-                    <input type="hidden" name="aiProvider" value="groq" />
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-400">{t('config.groqApiKey')}</label>
-                        <input
-                          name="groqApiKey"
-                          type="password"
-                          defaultValue={config?.groqApiKey}
-                          placeholder={t('config.groqApiKeyPlaceholder')}
-                          className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all"
-                        />
-                        <p className="text-xs text-slate-500 italic">
-                          ※ 現在は爆速かつ無料で利用可能な Groq (Llama 4 Scout) のみを使用します。
-                        </p>
-                      </div>
-
-                      <div className="border border-slate-700 rounded-xl overflow-hidden">
-                        <button
-                          type="button"
-                          onClick={() => setShowGroqInstructions(!showGroqInstructions)}
-                          className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 transition-colors text-sm font-medium text-slate-300"
-                        >
-                          <span>Groq APIキーを取得する方法</span>
-                          <ChevronRight
-                            size={16}
-                            className={cn("transition-transform duration-200", showGroqInstructions && "rotate-90")}
-                          />
-                        </button>
-                        <AnimatePresence>
-                          {showGroqInstructions && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden"
-                            >
-                              <div className="p-4 bg-slate-900 border-t border-slate-800 space-y-3 text-sm text-slate-400">
-                                <p className="flex gap-2">
-                                  <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">1</span>
-                                  <span className="flex-1">
-                                    <a
-                                      href="https://console.groq.com/keys"
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-blue-400 hover:underline inline-flex items-center gap-1"
-                                    >
-                                      Groq Cloud Console <ExternalLink size={12} />
-                                    </a>
-                                    にアクセスします。
-                                  </span>
-                                </p>
-                                <p className="flex gap-2">
-                                  <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">2</span>
-                                  <span className="flex-1">Googleアカウント、またはメールアドレスでサインアップ/ログインします。</span>
-                                </p>
-                                <p className="flex gap-2">
-                                  <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">3</span>
-                                  <span className="flex-1">「Create API Key」ボタンを押します。</span>
-                                </p>
-                                <p className="flex gap-2">
-                                  <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">4</span>
-                                  <span className="flex-1">適当な名前（例: MK8DX）を付けて作成し、表示されたコード（gsk-...）をコピーして上の入力欄に貼り付けます。</span>
-                                </p>
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </div>
-                  </section>
-
-                  <div className="flex justify-end pt-4">
-                    <button
-                      type="submit"
-                      className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/40 active:scale-95 flex items-center gap-2"
-                    >
-                      <Save size={20} />
-                      {t('config.saveButton')}
-                    </button>
+                  <h2 className="text-4xl font-bold text-white">Grosoq</h2>
+                  <p className="text-xl text-slate-400 leading-relaxed">
+                    {t('app.subtitle')}
+                  </p>
+                  <div className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl text-left space-y-4">
+                    <h3 className="font-bold text-lg border-b border-slate-800 pb-2 mb-4">使用方法</h3>
+                    <div className="space-y-4 text-slate-300" dangerouslySetInnerHTML={{ __html: t('usage.steps') }} />
                   </div>
-                </form>
-              </div>
-            )}
-
-            {activeTab === 'about' && (
-              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto text-center space-y-8 py-12">
-                <div className="w-24 h-24 bg-blue-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-900/40 mx-auto mb-8">
-                  <Monitor className="text-white" size={48} />
-                </div>
-                <h2 className="text-4xl font-bold text-white">Grosoq</h2>
-                <p className="text-xl text-slate-400 leading-relaxed">
-                  {t('app.subtitle')}
-                </p>
-                <div className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl text-left space-y-4">
-                  <h3 className="font-bold text-lg border-b border-slate-800 pb-2 mb-4">使用方法</h3>
-                  <div className="space-y-4 text-slate-300" dangerouslySetInnerHTML={{ __html: t('usage.steps') }} />
-                </div>
-                <p className="text-slate-500 pt-8">
-                  {t('footer.madeWith')}
-                </p>
-              </div>
-            )}
+                  <p className="text-slate-500 pt-8">
+                    {t('footer.madeWith')}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </main>
 
