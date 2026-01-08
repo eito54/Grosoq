@@ -114,6 +114,13 @@ export class EmbeddedServer {
       const clientInfo = { lastPing: Date.now() }
       this.sseClients.set(res, clientInfo)
 
+      // 接続直後に即座に現在のスコア状態を同期させるための通知を送る
+      setTimeout(() => {
+        try {
+          res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: Date.now() })}\n\n`)
+        } catch (e) {}
+      }, 100)
+
       req.on('close', () => {
         this.sseClients.delete(res)
       })
@@ -350,8 +357,8 @@ export class EmbeddedServer {
 
   private setupSSECleanup(): void {
     this.sseCleanupInterval = setInterval(() => {
-      // Cleanup logic
-    }, 5 * 60 * 1000)
+      this.broadcastScoreUpdate('ping')
+    }, 30000)
   }
 
   public start(port: number = 3001): Promise<void> {

@@ -159,6 +159,7 @@
         .added-score-float {
             animation: dynamicAddedScoreFloat 3.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             text-shadow: 0 0 8px var(--score-effect-color-rgba, rgba(34, 197, 94, 0.8));
+            will-change: transform, opacity;
         }
 
         /* カウントアップアニメーション中のスコア表示強調 */
@@ -398,28 +399,31 @@
         .overlay-fade-in {
             animation: dynamicFadeInOverlay 1.0s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
             opacity: 1;
-            transform: scale(1) rotateX(0deg);
+            transform: translateZ(0) scale(1) rotateX(0deg);
+            will-change: transform, opacity;
         }
 
         .overlay-fade-out {
             animation: dynamicFadeOutOverlay 0.6s ease-in-out forwards;
             opacity: 0;
-            transform: scale(0.9) rotateX(-10deg);
+            transform: translateZ(0) scale(0.9) rotateX(-10deg);
+            will-change: transform, opacity;
         }
 
         /* 滑らかな順位変動スライドアニメーション */
         @keyframes smoothSlideToPosition {
             0% {
-                transform: translateY(var(--start-y, 0));
+                transform: translateY(var(--start-y, 0)) translateZ(0);
             }
 
             100% {
-                transform: translateY(var(--end-y, 0));
+                transform: translateY(var(--end-y, 0)) translateZ(0);
             }
         }
 
         .position-slide {
             animation: smoothSlideToPosition 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+            will-change: transform;
         }
 
         /* 順位変動中の要素を一時的に固定位置にする */
@@ -427,6 +431,7 @@
             position: relative;
             z-index: 10;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            will-change: transform;
         }
 
         body {
@@ -636,7 +641,7 @@
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-                const response = await fetch('/api/scores', {
+                const response = await fetch(`/api/scores?t=${Date.now()}`, {
                     signal: controller.signal,
                     headers: { 'Content-Type': 'application/json' }
                 });
@@ -663,7 +668,9 @@
                     previousScores.clear();
                     countUpAnimations.forEach(id => clearInterval(id));
                     countUpAnimations.clear();
+                    // データが空になった場合、次のデータ取得を「初回ロード」として扱うためにフラグをリセット
                     hasDataEverLoaded = false;
+                    isFirstLoad = true;
                     previousTeamOrder = [];
                     return;
                 }
@@ -1093,8 +1100,35 @@
             });
         }
 
-        // 初回読み込み
-        updateScores();
+        // --- 資産のプリロードと初期化の最適化 ---
+        async function initialize() {
+            console.log('Initializing overlay assets...');
+            
+            // 背景画像のプリロード
+            const preloadImg = new Image();
+            preloadImg.src = '/overlay/background.png';
+            
+            // フォントのロード待機
+            try {
+                if (document.fonts) {
+                    await document.fonts.ready;
+                    console.log('Fonts loaded');
+                }
+            } catch (e) {
+                console.warn('Font loading check failed, proceeding anyway');
+            }
+
+            // 画像のデコード待機（カクつき防止）
+            try {
+                if (preloadImg.decode) await preloadImg.decode();
+            } catch (e) {}
+
+            console.log('Assets ready, starting score update');
+            updateScores();
+        }
+
+        // 起動！
+        initialize();
 
         // SSE接続でリアルタイム更新（堅牢性強化版）
         let sseReconnectAttempts = 0;
@@ -1117,8 +1151,6 @@
                 currentEventSource.onopen = function (event) {
                     console.log('SSE接続が正常に確立されました');
                     sseReconnectAttempts = 0; // 成功時はカウンターをリセット
-                    // 再接続時に最新状態へ同期
-                    updateScores();
                 };
 
                 currentEventSource.onmessage = function (event) {
@@ -1131,7 +1163,9 @@
                             console.log('Received config update notification');
                             updateTheme();
                         } else if (data.type === 'connected') {
-                            console.log('SSE接続確認');
+                            console.log('SSE接続確立通知を受信、強制同期します');
+                            updateScores();
+                            updateTheme();
                         }
                     } catch (error) {
                         console.error('SSE message parsing error:', error);

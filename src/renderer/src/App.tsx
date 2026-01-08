@@ -99,13 +99,17 @@ function ConfirmModal({
   onConfirm,
   onCancel,
   title,
-  message
+  message,
+  confirmText = "破棄して移動",
+  cancelText = "キャンセル"
 }: {
   isOpen: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   title: string;
   message: string;
+  confirmText?: string;
+  cancelText?: string;
 }) {
   return (
     <AnimatePresence>
@@ -140,13 +144,13 @@ function ConfirmModal({
                   onClick={onCancel}
                   className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-all border border-slate-700 uppercase tracking-widest text-sm"
                 >
-                  キャンセル
+                  {cancelText}
                 </button>
                 <button
                   onClick={onConfirm}
                   className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl transition-all shadow-lg shadow-red-600/20 uppercase tracking-widest text-sm"
                 >
-                  破棄して移動
+                  {confirmText}
                 </button>
               </div>
             </div>
@@ -522,6 +526,7 @@ function App(): JSX.Element {
   const [pendingSlotId, setPendingSlotId] = useState<number | null>(null)
   const [slotNameInput, setSlotNameInput] = useState('')
   const [slotModalType, setSlotModalType] = useState<'load' | 'add' | 'delete'>('load')
+  const [showResetConfirmModal, setShowResetConfirmModal] = useState(false)
 
 
   const handleCloseWhatsNew = async () => {
@@ -993,13 +998,17 @@ function App(): JSX.Element {
     }
   }
 
-  const handleResetScores = async () => {
-    if (!confirm('スコアをリセットしますか？')) return
+  const handleResetScores = () => {
+    setShowResetConfirmModal(true)
+  }
+
+  const executeResetScores = async () => {
     try {
       await fetch(`http://localhost:${serverPort}/api/scores/reset`, { method: 'POST' })
       loadScores()
       loadPlayerMappings()
       addLog('スコアとマッピングをリセットしました', 'success')
+      setShowResetConfirmModal(false)
     } catch (error) {
       addLog('リセットに失敗しました', 'error')
     }
@@ -2644,6 +2653,15 @@ function App(): JSX.Element {
           name={slotNameInput}
           setName={setSlotNameInput}
           slotId={pendingSlotId}
+        />
+
+        <ConfirmModal
+          isOpen={showResetConfirmModal}
+          onConfirm={executeResetScores}
+          onCancel={() => setShowResetConfirmModal(false)}
+          title="スコアリセット"
+          message="すべてのチームのスコアとプレイヤーマッピングをリセットします。この操作は取り消せません。よろしいですか？"
+          confirmText="リセットする"
         />
       </div>
     </>
