@@ -23,6 +23,10 @@ export interface Config {
     background: string
     text: string
     accent: string
+    scoreEffect: string
+    ownTeamStyle: 'solid' | 'rainbow' | 'gradient'
+    ownTeamColor: string
+    ownTeamGradient: string
   }
   scoreSettings: {
     maxRaces: number
@@ -80,7 +84,11 @@ export class ConfigManager {
       overlayColors: {
         background: 'rgba(15, 23, 42, 0.9)',
         text: '#f8fafc',
-        accent: '#3b82f6'
+        accent: '#3b82f6',
+        scoreEffect: '#22c55e',
+        ownTeamStyle: 'rainbow',
+        ownTeamColor: '#fbbf24',
+        ownTeamGradient: 'blue'
       },
       scoreSettings: {
         maxRaces: 12,

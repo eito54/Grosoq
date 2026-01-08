@@ -94,6 +94,34 @@ function ScanningOverlay() {
   )
 }
 
+function ColorPicker({ name, initialValue, onChange }: { name: string; initialValue: string; onChange?: () => void }) {
+  const [localColor, setLocalColor] = React.useState(initialValue)
+
+  React.useEffect(() => {
+    setLocalColor(initialValue)
+  }, [initialValue])
+
+  return (
+    <div className="relative group/color">
+      <input
+        type="color"
+        name={name}
+        value={localColor}
+        onChange={(e) => {
+          setLocalColor(e.target.value)
+          if (onChange) onChange()
+        }}
+        className="w-full h-14 bg-slate-900 border-2 border-slate-700 rounded-xl cursor-pointer transition-all hover:border-blue-500 p-1"
+      />
+      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+        <span className="text-xs font-mono text-white/50 bg-black/40 px-2 py-1 rounded backdrop-blur-sm group-hover/color:text-white/80 transition-colors">
+          {localColor.toUpperCase()}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 function ConfirmModal({
   isOpen,
   onConfirm,
@@ -528,6 +556,10 @@ function App(): JSX.Element {
   const [slotModalType, setSlotModalType] = useState<'load' | 'add' | 'delete'>('load')
   const [showResetConfirmModal, setShowResetConfirmModal] = useState(false)
 
+  // Overlay preview states
+  const [selectedOverlayTheme, setSelectedOverlayTheme] = useState<string>('default')
+  const [selectedOwnTeamStyle, setSelectedOwnTeamStyle] = useState<string>('rainbow')
+
 
   const handleCloseWhatsNew = async () => {
     setShowWhatsNew(false)
@@ -603,8 +635,16 @@ function App(): JSX.Element {
       // @ts-ignore
       const cfg = await window.electron.ipcRenderer.invoke('get-config')
       setConfig(cfg || {})
-      if (cfg && cfg.language && i18n.language !== cfg.language) {
-        i18n.changeLanguage(cfg.language)
+      if (cfg) {
+        if (cfg.language && i18n.language !== cfg.language) {
+          i18n.changeLanguage(cfg.language)
+        }
+        if (cfg.overlayTheme) {
+          setSelectedOverlayTheme(cfg.overlayTheme)
+        }
+        if (cfg.overlayColors?.ownTeamStyle) {
+          setSelectedOwnTeamStyle(cfg.overlayColors.ownTeamStyle)
+        }
       }
     } catch (error) {
       console.error('Failed to load config:', error)
@@ -1088,6 +1128,32 @@ function App(): JSX.Element {
 
     if (hasField('overlayTheme')) {
       newConfig.overlayTheme = formData.get('overlayTheme') as 'default' | 'mkw'
+    }
+
+    // カラー設定の更新
+    if (!newConfig.overlayColors) {
+      newConfig.overlayColors = {
+        background: 'rgba(15, 23, 42, 0.9)',
+        text: '#f8fafc',
+        accent: '#3b82f6',
+        scoreEffect: '#22c55e',
+        ownTeamStyle: 'rainbow',
+        ownTeamColor: '#fbbf24',
+        ownTeamGradient: 'blue'
+      }
+    }
+
+    if (hasField('scoreEffect')) {
+      newConfig.overlayColors.scoreEffect = formData.get('scoreEffect') as string
+    }
+    if (hasField('ownTeamStyle')) {
+      newConfig.overlayColors.ownTeamStyle = formData.get('ownTeamStyle') as any
+    }
+    if (hasField('ownTeamColor')) {
+      newConfig.overlayColors.ownTeamColor = formData.get('ownTeamColor') as string
+    }
+    if (hasField('ownTeamGradient')) {
+      newConfig.overlayColors.ownTeamGradient = formData.get('ownTeamGradient') as string
     }
 
     // スコア設定の更新
@@ -2356,6 +2422,10 @@ function App(): JSX.Element {
                           <select
                             name="overlayTheme"
                             defaultValue={config?.overlayTheme || 'default'}
+                            onChange={(e) => {
+                              setSelectedOverlayTheme(e.target.value)
+                              setIsDirty(true)
+                            }}
                             className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
                           >
                             <option value="default">デフォルト</option>
@@ -2363,6 +2433,82 @@ function App(): JSX.Element {
                           </select>
                           <p className="text-xs text-slate-500">オーバーレイの見た目を変更します。</p>
                         </div>
+
+                        {/* デフォルトテーマ設定 */}
+                        {selectedOverlayTheme === 'default' && (
+                          <div className="space-y-6 pt-4 border-t border-slate-700/50">
+                            <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
+                              <Palette size={16} className="text-blue-400" />
+                              デフォルトテーマ配色設定
+                            </h4>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
+                                <label className="text-sm font-medium text-slate-200">スコア加算エフェクト色</label>
+                                <div className="flex flex-col gap-2">
+                                  <ColorPicker
+                                    name="scoreEffect"
+                                    initialValue={config?.overlayColors?.scoreEffect || '#22c55e'}
+                                    onChange={() => setIsDirty(true)}
+                                  />
+                                </div>
+                                <p className="text-[10px] text-slate-500">点数が加算された時の光の色を変更します。</p>
+                              </div>
+
+                              <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
+                                <label className="text-sm font-medium text-slate-200">自チームの強調スタイル</label>
+                                <select
+                                  name="ownTeamStyle"
+                                  defaultValue={config?.overlayColors?.ownTeamStyle || 'rainbow'}
+                                  onChange={(e) => {
+                                    setSelectedOwnTeamStyle(e.target.value)
+                                    setIsDirty(true)
+                                  }}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                                >
+                                  <option value="solid">単色</option>
+                                  <option value="rainbow">虹色</option>
+                                  <option value="gradient">グラデーション</option>
+                                </select>
+                                <p className="text-[10px] text-slate-500">自チーム（または選択中）の枠線のスタイル。</p>
+                              </div>
+                            </div>
+
+                            {/* 条件付き表示: 自チームの詳細設定 */}
+                            {(selectedOwnTeamStyle === 'solid' || selectedOwnTeamStyle === 'gradient') && (
+                              <motion.div 
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-4 bg-[#0f172a] rounded-xl border border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-6"
+                              >
+                                <div className="space-y-2">
+                                  <label className="text-sm font-medium text-slate-200">自チームの色 (単色)</label>
+                                  <ColorPicker
+                                    name="ownTeamColor"
+                                    initialValue={config?.overlayColors?.ownTeamColor || '#fbbf24'}
+                                    onChange={() => setIsDirty(true)}
+                                  />
+                                </div>
+
+                                {selectedOwnTeamStyle === 'gradient' && (
+                                  <div className="space-y-2">
+                                    <label className="text-sm font-medium text-slate-200">グラデーション・バリエーション</label>
+                                    <select
+                                      name="ownTeamGradient"
+                                      defaultValue={config?.overlayColors?.ownTeamGradient || 'blue'}
+                                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                                    >
+                                      <option value="blue">ブルー（青〜水色）</option>
+                                      <option value="pink">ピンク（ピンク〜紫）</option>
+                                      <option value="orange">オレンジ（オレンジ〜黄）</option>
+                                      <option value="emerald">エメラルド（緑〜青碧）</option>
+                                    </select>
+                                  </div>
+                                )}
+                              </motion.div>
+                            )}
+                          </div>
+                        )}
 
                         <div className="pt-4">
                           <button

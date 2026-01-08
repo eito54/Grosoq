@@ -197,7 +197,7 @@
         /* スコア数値のカウントアップ中のフォント強調 */
         .counting-text {
             font-weight: 700;
-            text-shadow: 0 0 4px rgba(34, 197, 94, 0.6);
+            text-shadow: 0 0 4px var(--score-effect-color-rgba, rgba(34, 197, 94, 0.6));
             transition: all 0.1s ease;
         }
 
@@ -207,18 +207,18 @@
 
         @keyframes currentPlayerPulse {
             0% {
-                box-shadow: 0 0 8px 2px rgba(251, 191, 36, 0.4);
-                border-color: #fbbf24;
+                box-shadow: 0 0 8px 2px var(--own-team-color-rgba, rgba(251, 191, 36, 0.4));
+                border-color: var(--own-team-color, #fbbf24);
             }
 
             50% {
-                box-shadow: 0 0 15px 4px #fbbf24;
+                box-shadow: 0 0 15px 4px var(--own-team-color, #fbbf24);
                 border-color: #fff;
             }
 
             100% {
-                box-shadow: 0 0 8px 2px rgba(251, 191, 36, 0.4);
-                border-color: #fbbf24;
+                box-shadow: 0 0 8px 2px var(--own-team-color-rgba, rgba(251, 191, 36, 0.4));
+                border-color: var(--own-team-color, #fbbf24);
             }
         }
 
@@ -230,9 +230,9 @@
             background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.9));
             border-width: 2px;
             border-style: solid;
-            border-color: #fbbf24;
+            border-color: var(--own-team-color, #fbbf24);
             transform: skewX(-12deg);
-            box-shadow: 0 1px 2px 0 rgba(251, 191, 36, 0.4), 0 1px 3px 0 rgba(251, 191, 36, 0.4);
+            box-shadow: 0 1px 2px 0 var(--own-team-color-rgba, rgba(251, 191, 36, 0.4));
             border-radius: 0.25rem;
             animation: currentPlayerPulse 2s infinite ease-in-out;
         }
@@ -264,6 +264,28 @@
             animation: smoothRainbowBorder 4s linear infinite, currentPlayerPulse 2s infinite ease-in-out;
         }
 
+        /* グラデーションバリエーション */
+        @keyframes blueGrad { 0%, 100% { border-image: linear-gradient(90deg, #3b82f6, #60a5fa, #3b82f6) 1; } 50% { border-image: linear-gradient(90deg, #60a5fa, #3b82f6, #60a5fa) 1; } }
+        @keyframes pinkGrad { 0%, 100% { border-image: linear-gradient(90deg, #ec4899, #f472b6, #ec4899) 1; } 50% { border-image: linear-gradient(90deg, #f472b6, #ec4899, #f472b6) 1; } }
+        @keyframes orangeGrad { 0%, 100% { border-image: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b) 1; } 50% { border-image: linear-gradient(90deg, #fbbf24, #f59e0b, #fbbf24) 1; } }
+        @keyframes emeraldGrad { 0%, 100% { border-image: linear-gradient(90deg, #10b981, #34d399, #10b981) 1; } 50% { border-image: linear-gradient(90deg, #34d399, #10b981, #34d399) 1; } }
+
+        .gradient-blue-border::before { animation: blueGrad 4s linear infinite, currentPlayerPulse 2s infinite ease-in-out !important; }
+        .gradient-pink-border::before { animation: pinkGrad 4s linear infinite, currentPlayerPulse 2s infinite ease-in-out !important; }
+        .gradient-orange-border::before { animation: orangeGrad 4s linear infinite, currentPlayerPulse 2s infinite ease-in-out !important; }
+        .gradient-emerald-border::before { animation: emeraldGrad 4s linear infinite, currentPlayerPulse 2s infinite ease-in-out !important; }
+
+        .gradient-blue-border::before, .gradient-pink-border::before, .gradient-orange-border::before, .gradient-emerald-border::before {
+            content: '';
+            position: absolute;
+            inset: -1.5px;
+            z-index: 0;
+            background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.9));
+            border-width: 2px;
+            border-style: solid;
+            transform: skewX(-12deg);
+        }
+
         /* 動的な色による点滅エフェクト */
         @keyframes enhancedGreenFlash {
             0% {
@@ -273,21 +295,21 @@
             }
 
             25% {
-                border-color: rgba(34, 197, 94, 1);
-                box-shadow: 0 0 15px 4px rgba(34, 197, 94, 0.9), 0 0 25px 8px rgba(34, 197, 94, 0.5);
-                background: linear-gradient(to right, rgba(22, 101, 52, 0.95), rgba(34, 197, 94, 0.9));
+                border-color: var(--score-effect-color, #22c55e);
+                box-shadow: 0 0 15px 4px var(--score-effect-color-rgba, rgba(34, 197, 94, 0.9)), 0 0 25px 8px var(--score-effect-color-rgba, rgba(34, 197, 94, 0.5));
+                background: linear-gradient(to right, rgba(22, 101, 52, 0.95), var(--score-effect-color-rgba, rgba(34, 197, 94, 0.9)));
             }
 
             50% {
-                border-color: rgba(74, 222, 128, 1);
-                box-shadow: 0 0 20px 6px rgba(74, 222, 128, 1), 0 0 35px 12px rgba(74, 222, 128, 0.6);
-                background: linear-gradient(to right, rgba(22, 101, 52, 0.95), rgba(74, 222, 128, 0.9));
+                border-color: var(--score-effect-color, #22c55e);
+                box-shadow: 0 0 20px 6px var(--score-effect-color, #22c55e), 0 0 35px 12px var(--score-effect-color-rgba, rgba(74, 222, 128, 0.6));
+                background: linear-gradient(to right, rgba(22, 101, 52, 0.95), var(--score-effect-color-rgba, rgba(74, 222, 128, 0.9)));
             }
 
             75% {
-                border-color: rgba(34, 197, 94, 1);
-                box-shadow: 0 0 15px 4px rgba(34, 197, 94, 0.9), 0 0 25px 8px rgba(34, 197, 94, 0.5);
-                background: linear-gradient(to right, rgba(22, 101, 52, 0.95), rgba(34, 197, 94, 0.9));
+                border-color: var(--score-effect-color, #22c55e);
+                box-shadow: 0 0 15px 4px var(--score-effect-color-rgba, rgba(34, 197, 94, 0.9)), 0 0 25px 8px var(--score-effect-color-rgba, rgba(34, 197, 94, 0.5));
+                background: linear-gradient(to right, rgba(22, 101, 52, 0.95), var(--score-effect-color-rgba, rgba(34, 197, 94, 0.9)));
             }
 
             100% {
@@ -615,16 +637,46 @@
                 const response = await fetch(`/api/config?t=${Date.now()}`);
                 if (response.ok) {
                     const config = await response.json();
+                    
+                    // テーマの適用
                     const newTheme = (config.overlayTheme || 'default').toLowerCase();
                     if (newTheme !== currentTheme) {
                         console.log(`Theme updated: ${currentTheme} -> ${newTheme}`);
                         applyTheme(newTheme);
-                        // 再描画
-                        updateScores();
                     }
+
+                    // カラー設定の適用 (CSS変数)
+                    if (config.overlayColors) {
+                        const root = document.documentElement;
+                        const colors = config.overlayColors;
+                        
+                        // エフェクト色
+                        if (colors.scoreEffect) {
+                            root.style.setProperty('--score-effect-color', colors.scoreEffect);
+                            // RGBA版も生成
+                            const r = parseInt(colors.scoreEffect.slice(1, 3), 16);
+                            const g = parseInt(colors.scoreEffect.slice(3, 5), 16);
+                            const b = parseInt(colors.scoreEffect.slice(5, 7), 16);
+                            root.style.setProperty('--score-effect-color-rgba', `rgba(${r}, ${g}, ${b}, 0.8)`);
+                        }
+                        
+                        // 自チーム色
+                        if (colors.ownTeamColor) {
+                            root.style.setProperty('--own-team-color', colors.ownTeamColor);
+                            const r = parseInt(colors.ownTeamColor.slice(1, 3), 16);
+                            const g = parseInt(colors.ownTeamColor.slice(3, 5), 16);
+                            const b = parseInt(colors.ownTeamColor.slice(5, 7), 16);
+                            root.style.setProperty('--own-team-color-rgba', `rgba(${r}, ${g}, ${b}, 0.4)`);
+                        }
+
+                        // スタイル情報をグローバルに保持（レンダリング時に使用）
+                        window.overlayConfig = config;
+                    }
+
+                    updateScores();
                 }
             } catch (error) {
-                console.error('Failed to update theme:', error);
+                console.error('Failed to update theme/colors:', error);
             }
         }
 
@@ -818,9 +870,30 @@
                 const isEffectivelyCurrent = isCurrentPlayer || isTeamSelected;
 
                 // ボーダークラスの決定
-                let borderClass = isEffectivelyCurrent ? 'rainbow-border' : 'static-parallelogram-border';
-                if (isMKW) {
-                    borderClass = isEffectivelyCurrent ? 'mkw-parallelogram mkw-parallelogram-active' : 'mkw-parallelogram';
+                let borderClass = 'static-parallelogram-border';
+                if (isEffectivelyCurrent) {
+                    if (isMKW) {
+                        borderClass = 'mkw-parallelogram mkw-parallelogram-active';
+                    } else {
+                        // デフォルトテーマのカスタムスタイル
+                        const style = (window.overlayConfig?.overlayColors?.ownTeamStyle || 'rainbow');
+                        if (style === 'rainbow') {
+                            borderClass = 'rainbow-border';
+                        } else if (style === 'solid') {
+                            borderClass = 'animated-parallelogram-border';
+                        } else if (style === 'gradient') {
+                            const grad = window.overlayConfig?.overlayColors?.ownTeamGradient || 'blue';
+                            borderClass = `gradient-${grad}-border`;
+                        } else {
+                            borderClass = 'rainbow-border';
+                        }
+                    }
+                } else {
+                    if (isMKW) {
+                        borderClass = 'mkw-parallelogram';
+                    } else {
+                        borderClass = 'static-parallelogram-border';
+                    }
                 }
 
                 // 自チームを探す
