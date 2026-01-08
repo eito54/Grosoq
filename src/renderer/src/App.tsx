@@ -517,7 +517,7 @@ function App(): JSX.Element {
   const [showWizard, setShowWizard] = useState(false)
   const [wizardStep, setWizardStep] = useState(0)
 
-  // Custom modal states for DC Manager
+  // Custom modal states for Reopen Manager
   const [showSlotNameModal, setShowSlotNameModal] = useState(false)
   const [pendingSlotId, setPendingSlotId] = useState<number | null>(null)
   const [slotNameInput, setSlotNameInput] = useState('')
@@ -648,6 +648,16 @@ function App(): JSX.Element {
     addLog(useTotalScore ? 'チーム合計点を取得中...' : 'レース結果を取得中...', 'info')
 
     try {
+      // チーム合計点を取得（useTotalScore）時は、解析前にプレイヤーマッピングをリセット
+      if (useTotalScore) {
+        await fetch(`http://localhost:${serverPort}/api/player-mapping`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        })
+        loadPlayerMappings() // UI側の状態も即座にリセット
+      }
+
       // @ts-ignore
       const result = await window.electron.ipcRenderer.invoke('fetch-race-results', useTotalScore)
 
@@ -657,55 +667,106 @@ function App(): JSX.Element {
 
         // Process results and update scores via server API
         const raceResults = result.results
-        const teamScores: Record<string, number> = {}
 
-        raceResults.forEach((res: any) => {
-          if (res.team) {
-            const score = useTotalScore ? (res.score || res.totalScore || 0) : calculateRaceScore(res.rank)
-            teamScores[res.team] = (teamScores[res.team] || 0) + score
-          }
-        })
+        // チーム統合ロジック（旧バージョンの再現: 1文字目が同じチームを統合）
+        const normalizeAndMergeTeams = (teams: any[]) => {
+          const firstCharGroups: Record<string, any[]> = {}
 
-        // Update scores on server
-        const currentScoresResponse = await fetch(`http://localhost:${serverPort}/api/scores`)
-        const currentData = await currentScoresResponse.json()
-        const currentScores = currentData.scores || []
+          teams.forEach((teamData) => {
+            const teamName = teamData.name || teamData.team
+            if (!teamName) return
+            const firstChar = teamName.charAt(0).toUpperCase()
+            if (!firstCharGroups[firstChar]) {
+              firstCharGroups[firstChar] = []
+            }
+            firstCharGroups[firstChar].push(teamData)
+          })
 
-        const updatedScores = [...currentScores]
+          const mergedList: any[] = []
 
-        // 自チーム情報を探す
-        const selfResult = raceResults.find((r: any) => r.isCurrentPlayer)
-        const selfTeamName = selfResult?.team
-
-        Object.entries(teamScores).forEach(([teamName, score]) => {
-          const index = updatedScores.findIndex(s => (s.name || s.team) === teamName)
-          if (index !== -1) {
-            if (useTotalScore) {
-              updatedScores[index].score = score
-              updatedScores[index].addedScore = 0
+          Object.entries(firstCharGroups).forEach(([_firstChar, group]) => {
+            if (group.length === 1) {
+              mergedList.push(group[0])
             } else {
-              updatedScores[index].addedScore = score
-              updatedScores[index].score = (updatedScores[index].score || 0) + score
+              // 複数のチームがある場合は統合。スコアが最も高いチームを代表名にする
+              let mainTeam = group[0]
+              group.forEach((t) => {
+                if ((t.score || 0) > (mainTeam.score || 0)) mainTeam = t
+              })
+
+              const mergedData = {
+                name: mainTeam.name || mainTeam.team,
+                score: 0,
+                addedScore: 0,
+                isCurrentPlayer: false
+              }
+
+              group.forEach((t) => {
+                mergedData.score += t.score || 0
+                mergedData.addedScore += t.addedScore || 0
+                mergedData.isCurrentPlayer = mergedData.isCurrentPlayer || t.isCurrentPlayer
+              })
+              mergedList.push(mergedData)
             }
-            // 自チームフラグを更新
-            if (selfTeamName && teamName === selfTeamName) {
-              updatedScores.forEach(s => s.isCurrentPlayer = false)
-              updatedScores[index].isCurrentPlayer = true
+          })
+          return mergedList
+        }
+
+        let finalScores: any[] = []
+
+        if (useTotalScore) {
+          // 総合スコアの場合は、既存スコアを無視して新規作成（リセットして上書き）
+          const tempMap: Record<string, any> = {}
+          raceResults.forEach((res: any) => {
+            const teamName = res.team || 'UNKNOWN'
+            const score = res.score || res.totalScore || 0
+            if (!tempMap[teamName]) {
+              tempMap[teamName] = { name: teamName, score: 0, addedScore: 0, isCurrentPlayer: false }
             }
-          } else {
-            updatedScores.push({
-              name: teamName,
-              score,
-              addedScore: useTotalScore ? 0 : score,
-              isCurrentPlayer: selfTeamName ? (teamName === selfTeamName) : false
-            })
-          }
-        })
+            tempMap[teamName].score += score
+            tempMap[teamName].isCurrentPlayer = tempMap[teamName].isCurrentPlayer || res.isCurrentPlayer
+          })
+          finalScores = normalizeAndMergeTeams(Object.values(tempMap))
+        } else {
+          // レース結果の場合は、既存スコアをロードして加算
+          const currentScoresResponse = await fetch(`http://localhost:${serverPort}/api/scores`)
+          const currentData = await currentScoresResponse.json()
+          const currentScores = currentData.scores || []
+
+          const tempMap: Record<string, any> = {}
+          // 既存のチームスコアをマップに展開
+          currentScores.forEach((s: any) => {
+            const name = s.name || s.team
+            tempMap[name] = { ...s, addedScore: 0 }
+          })
+
+          // 今回のレース結果を計算して加算
+          raceResults.forEach((res: any) => {
+            const teamName = res.team || 'UNKNOWN'
+            const score = calculateRaceScore(res.rank)
+            if (!tempMap[teamName]) {
+              tempMap[teamName] = { name: teamName, score: 0, addedScore: 0, isCurrentPlayer: false }
+            }
+            tempMap[teamName].score += score
+            tempMap[teamName].addedScore += score // 今回の加算分を記録
+            tempMap[teamName].isCurrentPlayer = tempMap[teamName].isCurrentPlayer || res.isCurrentPlayer
+          })
+          finalScores = normalizeAndMergeTeams(Object.values(tempMap))
+        }
+
+        // 自チームフラグのクリーンアップ（複数のチームに立つのを防ぐ）
+        const hasCurrentPlayer = finalScores.some((s) => s.isCurrentPlayer)
+        if (hasCurrentPlayer) {
+          const mainCurrentTeam = finalScores.find((s) => s.isCurrentPlayer)
+          finalScores.forEach((s) => {
+            if (s !== mainCurrentTeam) s.isCurrentPlayer = false
+          })
+        }
 
         await fetch(`http://localhost:${serverPort}/api/scores?isOverallUpdate=${useTotalScore}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedScores)
+          body: JSON.stringify(finalScores)
         })
 
         loadScores()
@@ -1014,6 +1075,10 @@ function App(): JSX.Element {
 
     if (hasField('showRemainingRaces')) {
       newConfig.showRemainingRaces = formData.get('showRemainingRaces') === 'on'
+    }
+
+    if (hasField('overlayTheme')) {
+      newConfig.overlayTheme = formData.get('overlayTheme') as 'default' | 'mkw'
     }
 
     // スコア設定の更新
@@ -1598,10 +1663,10 @@ function App(): JSX.Element {
                 activeTab === 'reopen' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
                 isSidebarCollapsed && "justify-center px-0"
               )}
-              title={isSidebarCollapsed ? "dcマネージャー" : undefined}
+              title={isSidebarCollapsed ? "リオープンマネージャー" : undefined}
             >
               <History size={20} />
-              {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">dcマネージャー</span>}
+              {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">リオープンマネージャー</span>}
             </button>
             <button
               onClick={() => handleTabChange('mappings')}
@@ -2033,7 +2098,7 @@ function App(): JSX.Element {
               <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h2 className="text-3xl font-bold text-white">dcマネージャー</h2>
+                    <h2 className="text-3xl font-bold text-white">リオープンマネージャー</h2>
                     <p className="text-slate-400 mt-1">過去のスコア状態を保存・復元できます</p>
                   </div>
                   <button
@@ -2276,6 +2341,19 @@ function App(): JSX.Element {
                           label="残りレース数を表示"
                           help="1位のチームの横に残りレース数を表示します"
                         />
+
+                        <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
+                          <label className="text-sm font-medium text-slate-200">オーバーレイテーマ</label>
+                          <select
+                            name="overlayTheme"
+                            defaultValue={config?.overlayTheme || 'default'}
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                          >
+                            <option value="default">デフォルト (平行四辺形)</option>
+                            <option value="mkw">MK8DX風</option>
+                          </select>
+                          <p className="text-xs text-slate-500">オーバーレイの見た目を変更します。</p>
+                        </div>
 
                         <div className="pt-4">
                           <button

@@ -236,7 +236,9 @@ export class ApiManager {
 
     const base64Data = imageUrl.includes('base64,') ? imageUrl.split('base64,')[1] : imageUrl
     const currentHash = crypto.createHash('md5').update(base64Data).digest('hex') + `_groq_${useTotalScore}`
-    if (this.lastAnalysisHash === currentHash && this.lastAnalysisResult) {
+
+    // チーム合計点取得の場合は、マッピングリセット直後の可能性があるためキャッシュを無視する
+    if (!useTotalScore && this.lastAnalysisHash === currentHash && this.lastAnalysisResult) {
       return this.lastAnalysisResult
     }
 

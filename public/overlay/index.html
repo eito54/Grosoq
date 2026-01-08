@@ -1,56 +1,124 @@
 ﻿<!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grosoq スコアオーバーレイ</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        html, body {
+        html,
+        body {
             background: transparent !important;
             margin: 0;
             padding: 0;
             overflow: hidden;
         }
 
+        @font-face {
+            font-family: 'MKWFont';
+            src: url('/overlay/fonts/mk.ttf') format('truetype');
+        }
+
+        /* --- MKW Theme Styles --- */
+        .mkw-parallelogram::before {
+            content: '';
+            position: absolute;
+            /* 画像を少しだけ外側に広げて隙間を埋める */
+            inset: -1px; 
+            z-index: 0;
+            background-image: url('/overlay/background.png');
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            border: 0;
+            transform: skewX(-12deg);
+            border-radius: 2px;
+        }
+
+        .mkw-parallelogram-active::before {
+            inset: -1px;
+            border: 0;
+            box-shadow: none;
+            background-clip: border-box;
+            background-origin: border-box;
+        }
+
+        .theme-mkw #scores-container > div {
+            gap: 2px !important; /* チームごとの隙間を最小限に */
+        }
+
+        .theme-mkw [data-team-row] {
+            height: 32px !important; /* 行の高さを少し詰め、隙間を小さく見せる */
+        }
+
+        @keyframes currentPlayerPulseMKW {
+            0%, 100% { 
+                box-shadow: 0 0 10px 2px rgba(251, 191, 36, 0.6);
+                border-color: #fbbf24;
+            }
+            50% { 
+                box-shadow: 0 0 20px 4px rgba(251, 191, 36, 0.8);
+                border-color: #fff;
+            }
+        }
+
+        .mkw-font {
+            font-family: 'MKWFont', sans-serif;
+            text-shadow: none;
+        }
+
+        .mkw-score-text {
+            font-family: 'MKWFont', sans-serif;
+            text-shadow: none;
+        }
+
+        /* ----------------------- */
+
+        .theme-mkw .mkw-added {
+            color: #00ff00;
+            text-shadow: 1px 1px 2px #000000;
+        }
+
+        /* ----------------------- */
+
         /* Next.jsのSortableListスタイルを完全再現 */
-        
+
         /* 滑らかな虹色グラデーションアニメーション */
         @keyframes smoothRainbowBorder {
             0% {
                 border-image: linear-gradient(90deg,
-                    hsl(0, 100%, 50%), hsl(51, 100%, 50%), hsl(102, 100%, 50%),
-                    hsl(153, 100%, 50%), hsl(204, 100%, 50%), hsl(255, 100%, 50%),
-                    hsl(306, 100%, 50%), hsl(0, 100%, 50%)
-                ) 1;
+                        hsl(0, 100%, 50%), hsl(51, 100%, 50%), hsl(102, 100%, 50%),
+                        hsl(153, 100%, 50%), hsl(204, 100%, 50%), hsl(255, 100%, 50%),
+                        hsl(306, 100%, 50%), hsl(0, 100%, 50%)) 1;
             }
+
             25% {
                 border-image: linear-gradient(90deg,
-                    hsl(90, 100%, 50%), hsl(141, 100%, 50%), hsl(192, 100%, 50%),
-                    hsl(243, 100%, 50%), hsl(294, 100%, 50%), hsl(345, 100%, 50%),
-                    hsl(36, 100%, 50%), hsl(90, 100%, 50%)
-                ) 1;
+                        hsl(90, 100%, 50%), hsl(141, 100%, 50%), hsl(192, 100%, 50%),
+                        hsl(243, 100%, 50%), hsl(294, 100%, 50%), hsl(345, 100%, 50%),
+                        hsl(36, 100%, 50%), hsl(90, 100%, 50%)) 1;
             }
+
             50% {
                 border-image: linear-gradient(90deg,
-                    hsl(180, 100%, 50%), hsl(231, 100%, 50%), hsl(282, 100%, 50%),
-                    hsl(333, 100%, 50%), hsl(24, 100%, 50%), hsl(75, 100%, 50%),
-                    hsl(126, 100%, 50%), hsl(180, 100%, 50%)
-                ) 1;
+                        hsl(180, 100%, 50%), hsl(231, 100%, 50%), hsl(282, 100%, 50%),
+                        hsl(333, 100%, 50%), hsl(24, 100%, 50%), hsl(75, 100%, 50%),
+                        hsl(126, 100%, 50%), hsl(180, 100%, 50%)) 1;
             }
+
             75% {
                 border-image: linear-gradient(90deg,
-                    hsl(270, 100%, 50%), hsl(321, 100%, 50%), hsl(12, 100%, 50%),
-                    hsl(63, 100%, 50%), hsl(114, 100%, 50%), hsl(165, 100%, 50%),
-                    hsl(216, 100%, 50%), hsl(270, 100%, 50%)
-                ) 1;
+                        hsl(270, 100%, 50%), hsl(321, 100%, 50%), hsl(12, 100%, 50%),
+                        hsl(63, 100%, 50%), hsl(114, 100%, 50%), hsl(165, 100%, 50%),
+                        hsl(216, 100%, 50%), hsl(270, 100%, 50%)) 1;
             }
+
             100% {
                 border-image: linear-gradient(90deg,
-                    hsl(360, 100%, 50%), hsl(51, 100%, 50%), hsl(102, 100%, 50%),
-                    hsl(153, 100%, 50%), hsl(204, 100%, 50%), hsl(255, 100%, 50%),
-                    hsl(306, 100%, 50%), hsl(360, 100%, 50%)
-                ) 1;
+                        hsl(360, 100%, 50%), hsl(51, 100%, 50%), hsl(102, 100%, 50%),
+                        hsl(153, 100%, 50%), hsl(204, 100%, 50%), hsl(255, 100%, 50%),
+                        hsl(306, 100%, 50%), hsl(360, 100%, 50%)) 1;
             }
         }
 
@@ -61,22 +129,27 @@
                 opacity: 0;
                 transform: translateY(15px) scale(0.7) rotateZ(5deg);
             }
+
             15% {
                 opacity: 0.8;
                 transform: translateY(-3px) scale(1.2) rotateZ(-2deg);
             }
+
             30% {
                 opacity: 1;
                 transform: translateY(0) scale(1) rotateZ(0deg);
             }
+
             70% {
                 opacity: 1;
                 transform: translateY(-2px) scale(1.05) rotateZ(0deg);
             }
+
             85% {
                 opacity: 0.8;
                 transform: translateY(-8px) scale(1.1) rotateZ(2deg);
             }
+
             100% {
                 opacity: 0;
                 transform: translateY(-20px) scale(0.8) rotateZ(-5deg);
@@ -109,6 +182,7 @@
                 opacity: 0.2;
                 transform: scale(1);
             }
+
             100% {
                 opacity: 0.4;
                 transform: scale(1.02);
@@ -127,10 +201,12 @@
                 box-shadow: 0 0 8px 2px rgba(251, 191, 36, 0.4);
                 border-color: #fbbf24;
             }
+
             50% {
                 box-shadow: 0 0 15px 4px #fbbf24;
                 border-color: #fff;
             }
+
             100% {
                 box-shadow: 0 0 8px 2px rgba(251, 191, 36, 0.4);
                 border-color: #fbbf24;
@@ -186,21 +262,25 @@
                 box-shadow: 0 1px 2px 0 rgba(96, 165, 250, 0.4), 0 1px 3px 0 rgba(96, 165, 250, 0.4);
                 background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.9));
             }
+
             25% {
                 border-color: rgba(34, 197, 94, 1);
                 box-shadow: 0 0 15px 4px rgba(34, 197, 94, 0.9), 0 0 25px 8px rgba(34, 197, 94, 0.5);
                 background: linear-gradient(to right, rgba(22, 101, 52, 0.95), rgba(34, 197, 94, 0.9));
             }
+
             50% {
                 border-color: rgba(74, 222, 128, 1);
                 box-shadow: 0 0 20px 6px rgba(74, 222, 128, 1), 0 0 35px 12px rgba(74, 222, 128, 0.6);
                 background: linear-gradient(to right, rgba(22, 101, 52, 0.95), rgba(74, 222, 128, 0.9));
             }
+
             75% {
                 border-color: rgba(34, 197, 94, 1);
                 box-shadow: 0 0 15px 4px rgba(34, 197, 94, 0.9), 0 0 25px 8px rgba(34, 197, 94, 0.5);
                 background: linear-gradient(to right, rgba(22, 101, 52, 0.95), rgba(34, 197, 94, 0.9));
             }
+
             100% {
                 border-color: rgba(59, 130, 246, 0.7);
                 box-shadow: 0 1px 2px 0 rgba(96, 165, 250, 0.4), 0 1px 3px 0 rgba(96, 165, 250, 0.4);
@@ -212,19 +292,24 @@
             animation: enhancedGreenFlash 0.6s cubic-bezier(0.4, 0, 0.6, 1) 2;
             animation-fill-mode: forwards;
         }
-        
+
         /* アニメーション終了後にクラスを削除するためのスタイル */
         .score-flash-active {
-            animation-duration: 1.2s; /* 0.6s × 2回 */
+            animation-duration: 1.2s;
+            /* 0.6s × 2回 */
             animation-fill-mode: forwards;
         }
 
         @keyframes fadeInOut {
-            0%, 100% {
+
+            0%,
+            100% {
                 opacity: 0;
                 transform: translateY(5px);
             }
-            20%, 80% {
+
+            20%,
+            80% {
                 opacity: 1;
                 transform: translateY(0);
             }
@@ -240,10 +325,12 @@
                 opacity: 0;
                 transform: translateX(40px) scale(0.8) rotateY(15deg);
             }
+
             50% {
                 opacity: 0.8;
                 transform: translateX(-5px) scale(1.05) rotateY(-3deg);
             }
+
             100% {
                 opacity: 1;
                 transform: translateX(0) scale(1) rotateY(0deg);
@@ -260,10 +347,12 @@
                 opacity: 0;
                 transform: scale(0.85) rotateX(10deg);
             }
+
             50% {
                 opacity: 0.7;
                 transform: scale(1.05) rotateX(-2deg);
             }
+
             100% {
                 opacity: 1;
                 transform: scale(1) rotateX(0deg);
@@ -275,10 +364,12 @@
                 opacity: 1;
                 transform: scale(1) rotateX(0deg);
             }
+
             50% {
                 opacity: 0.7;
                 transform: scale(1.03) rotateX(5deg);
             }
+
             100% {
                 opacity: 0;
                 transform: scale(0.9) rotateX(-10deg);
@@ -302,6 +393,7 @@
             0% {
                 transform: translateY(var(--start-y, 0));
             }
+
             100% {
                 transform: translateY(var(--end-y, 0));
             }
@@ -327,7 +419,8 @@
         #scores-container {
             opacity: 1;
             transform: scale(1);
-            padding-left: 80px; /* 残りレース数表示のための余白 */
+            padding-left: 80px;
+            /* 残りレース数表示のための余白 */
         }
 
         .no-data {
@@ -387,18 +480,21 @@
 
         /* 残りレース数表示のアニメーション */
         @keyframes remainingRacesPulse {
-            0%, 100% {
+
+            0%,
+            100% {
                 opacity: 0.8;
                 box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
             }
+
             50% {
                 opacity: 1;
                 box-shadow: 0 0 0 4px rgba(59, 130, 246, 0);
             }
         }
-
     </style>
 </head>
+
 <body>
     <div class="w-full mx-auto mt-8 bg-transparent" id="scores-container">
         <div class="no-data">スコアデータがありません</div>
@@ -408,10 +504,33 @@
         // URLパラメータでオーバーレイモードかどうかを判定
         const urlParams = new URLSearchParams(window.location.search);
         const isOverlayMode = urlParams.get('overlay') === 'true';
-        
+
         if (isOverlayMode) {
             document.body.classList.add('overlay-mode');
         }
+
+        let currentTheme = 'default';
+
+        // 設定からテーマを読み込む
+        async function loadThemeConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                if (config.overlayTheme) {
+                    currentTheme = config.overlayTheme;
+                    applyTheme(currentTheme);
+                }
+            } catch (e) {
+                console.error('Failed to load theme config', e);
+            }
+        }
+
+        function applyTheme(theme) {
+            document.body.classList.remove('theme-default', 'theme-mkw');
+            document.body.classList.add('theme-' + theme);
+        }
+
+        loadThemeConfig();
 
         let selectedTeamInfo = null;
         let previousTeamOrder = []; // 前回のチーム順序を保存
@@ -432,7 +551,7 @@
         // 残りレース数を更新する関数
         function updateRemainingRaces(remainingRaces, showRemainingRaces = true) {
             const remainingRacesContainer = document.getElementById('remaining-races-container');
-            
+
             // 設定で無効になっている場合は表示しない
             if (!showRemainingRaces || remainingRaces === undefined || remainingRaces === null) {
                 if (remainingRacesContainer) {
@@ -441,36 +560,40 @@
                 previousRemainingRaces = null;
                 return;
             }
-            
+
             if (remainingRacesContainer) {
                 remainingRacesContainer.style.display = 'flex';
-                
+
+                const isMKW = currentTheme === 'mkw';
+                const borderClass = isMKW ? 'mkw-parallelogram' : 'static-parallelogram-border';
+                const fontClass = isMKW ? 'mkw-font' : '';
+
                 // 残りレース数が0の場合は異なる表示
                 if (remainingRaces === 0) {
                     remainingRacesContainer.innerHTML = `
-                        <div class="relative static-parallelogram-border overflow-visible">
+                        <div class="relative ${borderClass} overflow-visible">
                             <div class="flex items-center gap-1 px-2 py-1 text-sm font-bold text-white relative z-10">
                                 <svg class="h-3 w-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
-                                <span class="text-green-400 text-xs">完了</span>
+                                <span class="text-green-400 text-xs ${fontClass}">完了</span>
                             </div>
                         </div>
                     `;
                 } else {
                     remainingRacesContainer.innerHTML = `
-                        <div class="relative static-parallelogram-border overflow-visible">
+                        <div class="relative ${borderClass} overflow-visible">
                             <div class="flex items-center gap-1 px-2 py-1 text-sm font-bold text-white relative z-10">
                                 <svg class="h-3 w-3 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>
-                                <span class="text-xs">残り${remainingRaces}</span>
+                                <span class="text-xs ${fontClass}">残り${remainingRaces}</span>
                             </div>
                         </div>
                     `;
                 }
             }
-            
+
             previousRemainingRaces = remainingRaces;
         }
 
@@ -478,40 +601,40 @@
         async function updateScores() {
             try {
                 console.log('Fetching scores...');
-                
+
                 // タイムアウト付きのfetch
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒タイムアウト
-                
+
                 const response = await fetch('/api/scores', {
                     signal: controller.signal,
                     headers: {
                         'Content-Type': 'application/json'
                     }
                 });
-                
+
                 clearTimeout(timeoutId);
-                
+
                 if (!response.ok) {
                     throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
                 }
-                
+
                 const data = await response.json();
-                
+
                 // レスポンスデータの検証
                 if (!data || typeof data !== 'object') {
                     throw new Error('無効なレスポンスデータ');
                 }
-                
+
                 const scores = Array.isArray(data.scores) ? data.scores : [];
                 const remainingRaces = data.remainingRaces;
                 const showRemainingRaces = data.showRemainingRaces !== false;
-                
+
                 // 常に残りレース数を更新
                 updateRemainingRaces(remainingRaces, showRemainingRaces);
-                
+
                 const container = document.getElementById('scores-container');
-                
+
                 if (scores.length === 0) {
                     // データがない場合（スコアリセット時も含む）
                     container.classList.remove('overlay-fade-out', 'overlay-fade-in');
@@ -530,34 +653,34 @@
                     previousTeamOrder = [];
                     return;
                 }
-                
+
                 // スコアでソート（降順）
                 scores.sort((a, b) => (b.score || 0) - (a.score || 0));
-                
+
                 // 現在のチーム順序を取得
                 const currentTeamOrder = scores.map(team => team.team || team.name || '');
-                
+
                 // 順位変動を検出
                 const hasRankingChanged = hasDataEverLoaded &&
                     previousTeamOrder.length > 0 &&
                     !currentTeamOrder.every((team, index) => team === previousTeamOrder[index]);
-                
+
                 // isCurrentPlayerを持つチームを自動選択
                 const currentPlayerTeam = scores.find(team => team.isCurrentPlayer);
                 if (currentPlayerTeam && (!selectedTeamInfo || selectedTeamInfo.name !== (currentPlayerTeam.team || currentPlayerTeam.name))) {
                     selectedTeamInfo = { name: (currentPlayerTeam.team || currentPlayerTeam.name) };
                 }
-                
+
                 // 初回読み込み時または合計点計測時のフェードイン判定
                 const shouldFadeIn = !hasDataEverLoaded || (data.isOverallUpdate === true);
-                
+
                 // フェードアウト（合計点計測時のみ）
                 if (hasDataEverLoaded && shouldFadeIn) {
                     container.classList.add('overlay-fade-out');
                     await new Promise(resolve => setTimeout(resolve, 500));
                     container.classList.remove('overlay-fade-out');
                 }
-                
+
                 // 順位変動がある場合は、レンダリング前にカウントアップ用の前回スコアを保存
                 const preAnimationScores = new Map();
                 if (hasRankingChanged) {
@@ -569,14 +692,14 @@
                         }
                     });
                 }
-                
+
                 // カウントアップが必要かどうかを判定
                 const needsCountUp = scores.some(team => {
                     const teamName = team.team || team.name || '';
                     const prevScore = previousScores.get(teamName);
                     return prevScore !== undefined && prevScore !== (team.score || 0);
                 });
-                
+
                 // 順位変動アニメーションの準備
                 if (hasRankingChanged) {
                     await animateRankingChange(currentTeamOrder, scores, container);
@@ -584,16 +707,16 @@
                     // 通常の更新（カウントアップが必要な場合は前回の値で表示）
                     renderScoreList(scores, container, needsCountUp);
                 }
-                
+
                 // 順位変動後にカウントアップアニメーションを実行
                 if (hasRankingChanged && preAnimationScores.size > 0) {
                     const countUpPromises = [];
                     const rankingTeamsToAnimate = [];
-                    
+
                     scores.forEach(team => {
                         const prevScore = preAnimationScores.get(team.team);
                         const currentScore = team.score || 0;
-                        
+
                         // 初回読み込み時やリセット後の初回取得時はカウントアップしない
                         if (prevScore !== undefined && prevScore !== currentScore && hasDataEverLoaded) {
                             rankingTeamsToAnimate.push({
@@ -604,7 +727,7 @@
                             });
                         }
                     });
-                    
+
                     // カウントアップアニメーションを実行
                     rankingTeamsToAnimate.forEach(teamData => {
                         const scoreElement = document.querySelector(`[data-team="${teamData.team}"]`);
@@ -616,13 +739,13 @@
                                     scoreElement.classList.remove('score-flash-active');
                                 }, 1200);
                             }
-                            
+
                             // カウントアップアニメーション
                             const countUpPromise = animateCountUp(scoreElement, teamData.prevScore, teamData.currentScore, 1000);
                             countUpPromises.push(countUpPromise);
                         }
                     });
-                    
+
                     // すべてのカウントアップアニメーションを並行実行
                     if (countUpPromises.length > 0) {
                         Promise.all(countUpPromises).then(() => {
@@ -632,7 +755,7 @@
                         });
                     }
                 }
-                
+
                 // フェードイン（初回または合計点計測時）
                 if (shouldFadeIn) {
                     container.classList.add('overlay-fade-in');
@@ -643,11 +766,11 @@
                     // 通常更新時は既存のクラスをクリア
                     container.classList.remove('overlay-fade-out', 'overlay-fade-in');
                 }
-                
+
                 // 前回の順序を保存
                 previousTeamOrder = [...currentTeamOrder];
                 hasDataEverLoaded = true;
-                
+
             } catch (error) {
                 console.error('スコア取得エラー:', error);
                 const container = document.getElementById('scores-container');
@@ -657,6 +780,8 @@
 
         // スコアリストをレンダリングする関数（カウントアップ対応版）
         function renderScoreList(scores, container, useCountUp = false) {
+            const isMKW = currentTheme === 'mkw';
+
             container.innerHTML = `
                 <div class="space-y-0 w-full max-w-md mx-auto relative">
                     <!-- 残りレース数表示（1位チームの左側に独立配置） -->
@@ -665,73 +790,74 @@
                     </div>
                     
                     ${scores.map((team, index) => {
-                        const teamName = team.team || team.name || '';
-                        const isCurrentPlayer = team.isCurrentPlayer === true;
-                        const isFirstPlace = index === 0;
-                        const isTeamSelected = (selectedTeamInfo && selectedTeamInfo.name === teamName);
-                        const isEffectivelyCurrent = isCurrentPlayer || isTeamSelected;
-                        
-                        // ボーダークラスの決定: 自チーム（または選択中）は虹色、それ以外は通常
-                        const borderClass = isEffectivelyCurrent ? 'rainbow-border' : 'static-parallelogram-border';
-                        
-                        // 自チームを探す（isCurrentPlayerが優先、なければ選択中のチーム）
-                        const myTeam = scores.find(s => s.isCurrentPlayer === true) || 
-                                       (selectedTeamInfo ? scores.find(s => (s.team || s.name) === selectedTeamInfo.name) : null);
-                        
-                        // カウントアップが必要な場合は前回の値を使用
-                        let displayScore = team.score || 0;
-                        if (useCountUp && previousScores.has(teamName)) {
-                            const prevScore = previousScores.get(teamName);
-                            if (prevScore !== displayScore) {
-                                displayScore = prevScore; // カウントアップ前は前回の値を表示
-                            }
-                        }
-                        
-                        // 差分計算
-                        let diffDisplay = '';
-                        if (myTeam) {
-                            // 自チームが判明している場合は、自チームとの点差を表示
-                            if (teamName !== (myTeam.team || myTeam.name)) {
-                                const scoreDiff = myTeam.score - team.score;
-                                const diffText = scoreDiff === 0 ? "0" : scoreDiff > 0 ? `+${scoreDiff}` : `${scoreDiff}`;
-                                const textColor = scoreDiff > 0 ? 'text-green-400' : scoreDiff < 0 ? 'text-red-400' : 'text-white';
-                                const iconColor = scoreDiff > 0 ? 'text-green-400' : scoreDiff < 0 ? 'text-red-400' : 'text-blue-300';
-                                diffDisplay = `
-                                    <div class="relative static-parallelogram-border overflow-visible">
+                const teamName = team.team || team.name || '';
+                const isCurrentPlayer = team.isCurrentPlayer === true;
+                const isFirstPlace = index === 0;
+                const isTeamSelected = (selectedTeamInfo && selectedTeamInfo.name === teamName);
+                const isEffectivelyCurrent = isCurrentPlayer || isTeamSelected;
+
+                // ボーダークラスの決定
+                let borderClass = isEffectivelyCurrent ? 'rainbow-border' : 'static-parallelogram-border';
+                if (isMKW) {
+                    borderClass = isEffectivelyCurrent ? 'mkw-parallelogram mkw-parallelogram-active' : 'mkw-parallelogram';
+                }
+
+                // 自チームを探す
+                const myTeam = scores.find(s => s.isCurrentPlayer === true) ||
+                    (selectedTeamInfo ? scores.find(s => (s.team || s.name) === selectedTeamInfo.name) : null);
+
+                // カウントアップ値を決定
+                let displayScore = team.score || 0;
+                if (useCountUp && previousScores.has(teamName)) {
+                    const prevScore = previousScores.get(teamName);
+                    if (prevScore !== displayScore) {
+                        displayScore = prevScore;
+                    }
+                }
+
+                // 差分計算
+                let diffDisplay = '';
+                if (myTeam) {
+                    if (teamName !== (myTeam.team || myTeam.name)) {
+                        const scoreDiff = myTeam.score - team.score;
+                        const diffText = scoreDiff === 0 ? "0" : scoreDiff > 0 ? `+${scoreDiff}` : `${scoreDiff}`;
+                        const textColor = scoreDiff > 0 ? 'text-green-400' : scoreDiff < 0 ? 'text-red-400' : 'text-white';
+                        const iconColor = scoreDiff > 0 ? 'text-green-400' : scoreDiff < 0 ? 'text-red-400' : 'text-blue-300';
+                        diffDisplay = `
+                                    <div class="relative ${borderClass} overflow-visible">
                                         <div class="flex items-center gap-1 px-1.5 py-0.5 text-sm font-bold ${textColor} relative z-10">
                                             <svg class="h-3 w-3 ${iconColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                                             </svg>
-                                            <span>${diffText}</span>
+                                            <span class="${isMKW ? 'mkw-font' : ''}">${diffText}</span>
                                         </div>
                                     </div>
                                 `;
-                            }
-                        } else if (index < scores.length - 1) {
-                            // 自チームが不明な場合は、従来通り隣との差を表示
-                            const scoreDiff = scores[index].score - scores[index + 1].score;
-                            const diffText = scoreDiff > 0 ? `+${scoreDiff}` : `${scoreDiff}`;
-                            diffDisplay = `
-                                <div class="relative static-parallelogram-border overflow-visible">
+                    }
+                } else if (index < scores.length - 1) {
+                    const scoreDiff = scores[index].score - scores[index + 1].score;
+                    const diffText = scoreDiff > 0 ? `+${scoreDiff}` : `${scoreDiff}`;
+                    diffDisplay = `
+                                <div class="relative ${borderClass} overflow-visible">
                                     <div class="flex items-center gap-1 px-1.5 py-0.5 text-sm font-bold text-white relative z-10">
                                         <svg class="h-3 w-3 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
                                         </svg>
-                                        <span>${diffText}</span>
+                                        <span class="${isMKW ? 'mkw-font' : ''}">${diffText}</span>
                                     </div>
                                 </div>
                             `;
-                        }
-                        
-                        return `
-                            <div class="h-12 flex items-center gap-1 px-2 border-0 rounded-lg transition-all duration-200 cursor-pointer relative"
+                }
+
+                return `
+                            <div class="${isMKW ? 'h-9' : 'h-12'} flex items-center gap-1 px-2 border-0 rounded-lg transition-all duration-200 cursor-pointer relative"
                                  ondblclick="toggleTeamSelection('${escapeHtml(teamName)}')"
                                  data-team-row="${escapeHtml(teamName)}">
                                 
                                 <!-- チーム名 -->
                                 <div class="relative w-20 h-7 ${borderClass} overflow-visible">
                                     <div class="relative z-20 w-full h-full flex items-center justify-center">
-                                        <span class="text-center font-medium text-white whitespace-nowrap px-0.5" style="font-size: ${teamName.length <= 3 ? '0.75rem' : '0.6rem'}">
+                                        <span class="text-center ${isMKW && isEffectivelyCurrent ? 'font-bold text-yellow-400' : 'font-medium text-white'} whitespace-nowrap px-0.5" style="font-size: ${teamName.length <= 3 ? '0.75rem' : '0.6rem'}">
                                             ${escapeHtml(teamName)}
                                         </span>
                                     </div>
@@ -742,12 +868,12 @@
                                     <!-- スコア -->
                                     <div class="relative w-16 h-7 score-box ${borderClass} overflow-visible" data-team="${escapeHtml(teamName)}">
                                         <div class="relative z-20 w-full h-full flex items-center justify-center">
-                                            <span class="text-base text-center font-medium text-white">
+                                            <span class="${isMKW ? 'mkw-score-text text-lg' : 'text-base font-medium'} text-center ${isMKW && isEffectivelyCurrent ? 'text-yellow-400' : 'text-white'}">
                                                 ${displayScore}
                                             </span>
                                             <!-- 加算点数表示（スコア枠内の右側） -->
                                             ${team.addedScore && team.addedScore > 0 ? `
-                                                <span class="absolute right-1 top-0 text-green-400 font-bold text-xs" data-added-score="${escapeHtml(teamName)}">
+                                                <span class="absolute right-1 top-0 text-green-400 font-bold text-xs ${isMKW ? 'mkw-font' : ''}" data-added-score="${escapeHtml(teamName)}">
                                                     +${team.addedScore}
                                                 </span>
                                             ` : ''}
@@ -762,7 +888,7 @@
                                 <div class="flex-1"></div>
                             </div>
                         `;
-                    }).join('')}
+            }).join('')}
                 </div>
             `;
         }
@@ -772,32 +898,32 @@
             const currentElements = container.querySelectorAll('[data-team-row]');
             const elementMap = new Map();
             const elementPositions = new Map();
-            
+
             // 現在の要素の位置を記録
             currentElements.forEach((element, index) => {
                 const teamName = element.getAttribute('data-team-row');
                 elementMap.set(teamName, element);
                 elementPositions.set(teamName, index * 48); // 48px = h-12のheight
             });
-            
+
             // 新しい順序での位置を計算
             const newPositions = new Map();
             newOrder.forEach((teamName, index) => {
                 newPositions.set(teamName, index * 48);
             });
-            
+
             // アニメーション実行
             const animations = [];
             elementMap.forEach((element, teamName) => {
                 const currentPos = elementPositions.get(teamName);
                 const newPos = newPositions.get(teamName);
-                
+
                 if (currentPos !== newPos) {
                     const deltaY = newPos - currentPos;
                     element.style.setProperty('--start-y', '0px');
                     element.style.setProperty('--end-y', `${deltaY}px`);
                     element.classList.add('position-slide', 'sliding-element');
-                    
+
                     animations.push(new Promise(resolve => {
                         element.addEventListener('animationend', () => {
                             element.classList.remove('position-slide', 'sliding-element');
@@ -808,12 +934,12 @@
                     }));
                 }
             });
-            
+
             // すべてのアニメーションが完了するまで待機
             if (animations.length > 0) {
                 await Promise.all(animations);
             }
-            
+
             // アニメーション完了後に新しい内容を描画（カウントアップ対応）
             const needsCountUp = scores.some(team => {
                 const prevScore = previousScores.get(team.team);
@@ -832,7 +958,7 @@
                 '"': '&quot;',
                 "'": '&#039;'
             };
-            return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+            return String(text).replace(/[&<>"']/g, function (m) { return map[m]; });
         }
 
         let previousScores = new Map(); // 前回のスコアを保存
@@ -843,67 +969,69 @@
         function animateCountUp(element, startValue, endValue, duration = 1000) {
             return new Promise((resolve) => {
                 const teamName = element.getAttribute('data-team');
-                
+
                 // 既存のアニメーションがあれば停止
                 if (countUpAnimations.has(teamName)) {
                     clearInterval(countUpAnimations.get(teamName));
                 }
-                
+
                 const startTime = Date.now();
                 const difference = endValue - startValue;
-                
+
                 // スコア要素内のテキスト要素を取得
+                const isMKW = currentTheme === 'mkw';
                 const scoreTextElement = element.querySelector('span');
+
                 if (!scoreTextElement) {
                     resolve();
                     return;
                 }
-                
+
                 // カウントアップ中の視覚効果を追加
                 element.classList.add('score-counting-up');
                 scoreTextElement.classList.add('counting-text');
-                
+
                 const updateScore = () => {
                     const elapsed = Date.now() - startTime;
                     const progress = Math.min(elapsed / duration, 1);
-                    
+
                     // イージング関数（accelerated deceleration）
                     const easeOutQuad = 1 - Math.pow(1 - progress, 2);
                     const currentValue = Math.floor(startValue + (difference * easeOutQuad));
-                    
+
                     // スコア要素内のテキストを更新
                     scoreTextElement.textContent = currentValue;
-                    
+
                     if (progress >= 1) {
                         // アニメーション完了
                         scoreTextElement.textContent = endValue;
-                        
+
                         // 視覚効果を削除
                         element.classList.remove('score-counting-up');
                         scoreTextElement.classList.remove('counting-text');
-                        
+
                         countUpAnimations.delete(teamName);
                         console.log(`Count-up animation completed for ${teamName}: ${startValue} → ${endValue}`);
                         resolve();
                     }
                 };
-                
+
                 // アニメーションを開始
                 const intervalId = setInterval(updateScore, 16); // 約60fps
                 countUpAnimations.set(teamName, intervalId);
-                
+
                 // 完了時の処理（フェイルセーフ）
                 setTimeout(() => {
                     clearInterval(intervalId);
                     countUpAnimations.delete(teamName);
-                    
+
                     // 最終値を設定
                     scoreTextElement.textContent = endValue;
-                    
+
                     // 視覚効果を削除
                     element.classList.remove('score-counting-up');
                     scoreTextElement.classList.remove('counting-text');
-                    
+
                     resolve();
                 }, duration + 100); // 少し余裕を持たせる
             });
@@ -911,10 +1039,10 @@
 
         // 新しいupdateScores関数にスコア変更アニメーション機能を統合
         const baseUpdateScores = updateScores;
-        updateScores = async function() {
+        updateScores = async function () {
             try {
                 await baseUpdateScores();
-                
+
                 // DOM更新後のスコア変更アニメーション制御
                 setTimeout(async () => {
                     try {
@@ -924,19 +1052,19 @@
                         const remainingRaces = data.remainingRaces;
                         const showRemainingRaces = data.showRemainingRaces !== false; // デフォルトはtrue
                         let hasScoreUpdate = false;
-                        
+
                         // 残りレース数を更新（設定に基づいて制御）
                         updateRemainingRaces(remainingRaces, showRemainingRaces);
-                        
+
                         // スコア変更とカウントアップアニメーション
                         const countUpPromises = [];
                         const teamsToAnimate = [];
-                        
+
                         scores.forEach(team => {
                             const teamName = team.team || team.name || '';
                             const prevScore = previousScores.get(teamName);
                             const currentScore = team.score || 0;
-                            
+
                             // 初回読み込み時やリセット後の初回取得時はカウントアップしない
                             if (prevScore !== undefined && prevScore !== currentScore && hasDataEverLoaded) {
                                 hasScoreUpdate = true;
@@ -948,7 +1076,7 @@
                                 });
                             }
                         });
-                        
+
                         // カウントアップアニメーションを実行
                         teamsToAnimate.forEach(teamData => {
                             const scoreElement = document.querySelector(`[data-team="${teamData.team}"]`);
@@ -960,19 +1088,19 @@
                                         scoreElement.classList.remove('score-flash-active');
                                     }, 1200);
                                 }
-                                
+
                                 // カウントアップアニメーション
                                 const countUpPromise = animateCountUp(scoreElement, teamData.prevScore, teamData.currentScore, 1000);
                                 countUpPromises.push(countUpPromise);
                             }
                         });
-                        
+
                         // previousScoresを更新
                         scores.forEach(team => {
                             const teamName = team.team || team.name || '';
                             previousScores.set(teamName, team.score || 0);
                         });
-                        
+
                         // 順位変動がある場合は、カウントアップと並行してアニメーションを実行
                         if (countUpPromises.length > 0) {
                             // カウントアップアニメーションを並行実行（順位変動アニメーションとは独立）
@@ -982,7 +1110,7 @@
                                 console.error('Count-up animation error:', error);
                             });
                         }
-                        
+
                         // 加算得点アニメーション制御（DOM更新後）
                         setTimeout(() => {
                             scores.forEach(team => {
@@ -992,7 +1120,7 @@
                                     const addedScoreElement = document.querySelector(`[data-added-score="${teamName}"]`);
                                     if (addedScoreElement && !addedScoreElement.classList.contains('added-score-float')) {
                                         addedScoreElement.classList.add('added-score-float');
-                                        
+
                                         // 3秒後に要素を削除
                                         setTimeout(() => {
                                             if (addedScoreElement.parentNode) {
@@ -1003,8 +1131,8 @@
                                 }
                             });
                         }, 200);
-                        
-                        
+
+
                         // スライドインアニメーション（初回のみ）
                         if (isFirstLoad) {
                             const teamRows = document.querySelectorAll('[data-team-row]');
@@ -1018,7 +1146,7 @@
                         console.error('アニメーション用データ取得エラー:', fetchError);
                     }
                 }, 100);
-                
+
             } catch (error) {
                 console.error('スコア取得エラー:', error);
                 const container = document.getElementById('scores-container');
@@ -1045,16 +1173,16 @@
             }
 
             console.log(`SSE接続試行 (${sseReconnectAttempts + 1}/${MAX_SSE_RECONNECT_ATTEMPTS})`);
-            
+
             try {
                 currentEventSource = new EventSource('/api/scores/events');
-                
-                currentEventSource.onopen = function(event) {
+
+                currentEventSource.onopen = function (event) {
                     console.log('SSE接続が正常に確立されました');
                     sseReconnectAttempts = 0; // 成功時はカウンターをリセット
                 };
-                
-                currentEventSource.onmessage = function(event) {
+
+                currentEventSource.onmessage = function (event) {
                     try {
                         const data = JSON.parse(event.data);
                         if (data.type === 'scores-updated') {
@@ -1067,38 +1195,38 @@
                         console.error('SSE message parsing error:', error);
                     }
                 };
-                
-                currentEventSource.onerror = function(error) {
+
+                currentEventSource.onerror = function (error) {
                     console.error('SSE connection error:', error);
-                    
+
                     // 現在の接続を閉じる
                     if (currentEventSource) {
                         currentEventSource.close();
                         currentEventSource = null;
                     }
-                    
+
                     // 最大再試行回数に達した場合は停止
                     if (sseReconnectAttempts >= MAX_SSE_RECONNECT_ATTEMPTS) {
                         console.error('SSE再接続の最大試行回数に達しました。手動でページを更新してください。');
                         return;
                     }
-                    
+
                     // 指数バックオフで再接続を試行
                     const delay = BASE_RECONNECT_DELAY * Math.pow(2, sseReconnectAttempts);
                     const maxDelay = 30000; // 最大30秒
                     const actualDelay = Math.min(delay, maxDelay);
-                    
+
                     console.log(`${actualDelay / 1000}秒後にSSE再接続を試行します...`);
                     sseReconnectAttempts++;
-                    
+
                     setTimeout(() => {
                         setupSSE();
                     }, actualDelay);
                 };
-                
+
             } catch (error) {
                 console.error('SSE接続の初期化に失敗:', error);
-                
+
                 // 初期化エラーの場合も再試行
                 if (sseReconnectAttempts < MAX_SSE_RECONNECT_ATTEMPTS) {
                     sseReconnectAttempts++;
@@ -1110,7 +1238,7 @@
         }
 
         // ページがアンロードされる前にSSE接続をクリーンアップ
-        window.addEventListener('beforeunload', function() {
+        window.addEventListener('beforeunload', function () {
             if (currentEventSource) {
                 currentEventSource.close();
                 currentEventSource = null;
@@ -1121,4 +1249,5 @@
         setupSSE();
     </script>
 </body>
+
 </html>

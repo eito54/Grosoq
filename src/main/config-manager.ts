@@ -18,6 +18,7 @@ export interface Config {
   language: string
   lastSeenVersion: string
   lastReleaseNotes: string
+  overlayTheme: 'default' | 'mkw'
   overlayColors: {
     background: string
     text: string
@@ -75,6 +76,7 @@ export class ConfigManager {
       language: 'ja',
       lastSeenVersion: '',
       lastReleaseNotes: '',
+      overlayTheme: 'default',
       overlayColors: {
         background: 'rgba(15, 23, 42, 0.9)',
         text: '#f8fafc',
