@@ -7,7 +7,7 @@ export interface Config {
   obsPort: number
   obsPassword: string
   obsSourceName: string
-  aiProvider: 'groq' | 'openai' | 'groq'
+  aiProvider: 'groq' | 'openai' | 'gemini'
   geminiApiKey: string
   geminiApiKeys: string[]
   geminiModel: string

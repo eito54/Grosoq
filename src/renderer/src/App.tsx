@@ -122,6 +122,88 @@ function ColorPicker({ name, initialValue, onChange }: { name: string; initialVa
   )
 }
 
+function MessageModal({
+  isOpen,
+  onClose,
+  type,
+  title,
+  message
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  type: 'info' | 'error' | 'success';
+  title: string;
+  message: string;
+}) {
+  const Icon = type === 'error' ? AlertCircle : (type === 'success' ? CheckCircle2 : Info);
+  const colorClass = type === 'error' ? 'red' : (type === 'success' ? 'emerald' : 'blue');
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className={cn(
+              "relative w-full max-w-md bg-slate-900 border-2 rounded-2xl overflow-hidden shadow-2xl",
+              type === 'error' ? "border-red-500/50 shadow-red-900/20" : 
+              type === 'success' ? "border-emerald-500/50 shadow-emerald-900/20" : 
+              "border-blue-500/50 shadow-blue-900/20"
+            )}
+          >
+            <div className={cn(
+              "absolute inset-x-0 top-0 h-1",
+              type === 'error' ? "bg-red-600" : type === 'success' ? "bg-emerald-600" : "bg-blue-600"
+            )} />
+            <div className="p-8">
+              <div className="flex items-center gap-4 mb-4">
+                <div className={cn(
+                  "w-12 h-12 rounded-2xl flex items-center justify-center border-2",
+                  type === 'error' ? "bg-red-500/10 border-red-500/30 text-red-500" :
+                  type === 'success' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500" :
+                  "bg-blue-500/10 border-blue-500/30 text-blue-500"
+                )}>
+                  <Icon size={28} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-100 uppercase tracking-tight">{title}</h3>
+                  <div className={cn(
+                    "h-0.5 w-12 mt-1",
+                    type === 'error' ? "bg-red-500" : type === 'success' ? "bg-emerald-500" : "bg-blue-500"
+                  )} />
+                </div>
+              </div>
+              <p className="text-slate-300 mb-8 leading-relaxed whitespace-pre-wrap">
+                {message}
+              </p>
+              <button
+                onClick={onClose}
+                className={cn(
+                  "w-full py-4 font-black rounded-xl transition-all shadow-lg active:scale-95 text-white uppercase tracking-widest text-sm",
+                  type === 'error' ? "bg-red-600 hover:bg-red-500 shadow-red-900/40" :
+                  type === 'success' ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/40" :
+                  "bg-blue-600 hover:bg-blue-500 shadow-blue-900/40"
+                )}
+              >
+                OK
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function ConfirmModal({
   isOpen,
   onConfirm,
@@ -331,9 +413,10 @@ function WhatsNewModal({
               <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-6 mb-8 max-h-[40vh] overflow-y-auto custom-scrollbar">
                 {notes ? (
                   <div className="prose prose-invert prose-sm">
-                    <div className="whitespace-pre-wrap text-slate-300 leading-relaxed font-medium">
-                      {notes}
-                    </div>
+                    <div
+                      className="text-slate-300 leading-relaxed font-medium"
+                      dangerouslySetInnerHTML={{ __html: notes }}
+                    />
                   </div>
                 ) : (
                   <p className="text-slate-500 italic text-center py-4">
@@ -547,6 +630,19 @@ function App(): JSX.Element {
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false)
   const [isBooting, setIsBooting] = useState(true)
   const [showWizard, setShowWizard] = useState(false)
+  const [obsStatus, setObsStatus] = useState(false)
+  const [obsInputs, setObsInputs] = useState<any[]>([])
+  const [isObsConnecting, setIsObsConnecting] = useState(false)
+  
+  const [guiModal, setGuiModal] = useState<{
+    type: 'info' | 'error' | 'success',
+    title: string,
+    message: string
+  } | null>(null)
+
+  const showGuiMessage = (type: 'info' | 'error' | 'success', title: string, message: string) => {
+    setGuiModal({ type, title, message })
+  }
   const [wizardStep, setWizardStep] = useState(0)
 
   // Custom modal states for Reopen Manager
@@ -626,6 +722,99 @@ function App(): JSX.Element {
     window.electron.ipcRenderer.invoke('quit-and-install')
   }
 
+  useEffect(() => {
+    const handleObsStatus = (_event: any, isConnected: boolean) => {
+      setObsStatus(isConnected)
+      if (isConnected) {
+        window.electron.ipcRenderer.invoke('obs-get-inputs').then((result: any) => {
+          if (result.success) setObsInputs(result.inputs)
+        })
+      }
+    }
+    // @ts-ignore
+    window.electron?.ipcRenderer?.on('obs-status-change', handleObsStatus)
+
+    // Initial check
+    // @ts-ignore
+    window.electron?.ipcRenderer?.invoke('obs-get-status').then(status => {
+      setObsStatus(status)
+      if (status) {
+        // @ts-ignore
+        window.electron?.ipcRenderer?.invoke('obs-get-inputs').then((result: any) => {
+          if (result.success) setObsInputs(result.inputs)
+        })
+      }
+    })
+
+    return () => {
+      // @ts-ignore
+      window.electron?.ipcRenderer?.removeListener('obs-status-change', handleObsStatus)
+    }
+  }, [])
+
+  const toggleObsConnection = async () => {
+    if (obsStatus) {
+      // @ts-ignore
+      await window.electron.ipcRenderer.invoke('obs-disconnect')
+    } else {
+      setIsObsConnecting(true)
+      try {
+        // @ts-ignore
+        const result = await window.electron.ipcRenderer.invoke('obs-connect', config)
+        if (!result.success) {
+          showGuiMessage('error', 'OBS接続エラー', result.error)
+        } else {
+          // Connected! If source name is empty, try to find a good one
+          if (!config?.obsSourceName) {
+            // @ts-ignore
+            const sourceResult = await window.electron.ipcRenderer.invoke('obs-find-best-source')
+            if (sourceResult.success && sourceResult.sourceName) {
+              const updatedConfig = { ...config, obsSourceName: sourceResult.sourceName }
+              setConfig(updatedConfig)
+              // @ts-ignore
+              window.electron.ipcRenderer.invoke('save-config', updatedConfig)
+            }
+          }
+        }
+      } finally {
+        setIsObsConnecting(false)
+      }
+    }
+  }
+
+  const autoDetectObsSettings = async () => {
+    // @ts-ignore
+    const result = await window.electron.ipcRenderer.invoke('obs-detect-settings')
+    if (result.success && result.settings) {
+      const { port, password, enabled } = result.settings
+      const updatedConfig = { ...config, obsPort: port, obsPassword: password }
+      setConfig(updatedConfig)
+      setIsDirty(true)
+      
+      if (!enabled) {
+        showGuiMessage('info', 'OBS設定を読み込みました', '設定を読み込みましたが、OBS側で「WebSocketサーバー」が無効になっているようです。OBSの「ツール」→「WebSocketサーバー設定」から有効にしてください。')
+      } else {
+        showGuiMessage('info', '成功', 'OBSから設定を自動取得しました。')
+      }
+    } else {
+      showGuiMessage('error', 'エラー', 'OBSの設定ファイルが見つかりませんでした。')
+    }
+  }
+
+  const autoSetupObsOverlay = async () => {
+    if (!obsStatus) {
+      showGuiMessage('info', 'OBS', 'まずOBSに接続してください')
+      return
+    }
+    // @ts-ignore
+    const result = await window.electron.ipcRenderer.invoke('obs-auto-setup')
+    if (result.success) {
+      showGuiMessage('info', '成功', 'OBSにブラウザソースを追加しました')
+    } else {
+      showGuiMessage('error', 'エラー', result.error)
+    }
+  }
+
   const loadConfig = useCallback(async () => {
     try {
       if (!window.electron || !window.electron.ipcRenderer) {
@@ -633,8 +822,52 @@ function App(): JSX.Element {
         return
       }
       // @ts-ignore
-      const cfg = await window.electron.ipcRenderer.invoke('get-config')
-      setConfig(cfg || {})
+      let cfg = await window.electron.ipcRenderer.invoke('get-config')
+      
+      // 完全に新規の場合のデフォルト値
+      const defaults = { 
+        obsIp: '127.0.0.1', 
+        obsPort: 4455,
+        obsSourceName: '映像キャプチャデバイス',
+        aiProvider: 'groq',
+        theme: 'light',
+        language: 'ja',
+        overlayTheme: 'default',
+        overlayColors: {
+          background: 'rgba(15, 23, 42, 0.9)',
+          text: '#f8fafc',
+          accent: '#3b82f6',
+          scoreEffect: '#22c55e',
+          ownTeamStyle: 'rainbow',
+          ownTeamColor: '#fbbf24',
+          ownTeamGradient: 'blue'
+        }
+      }
+      
+      // 既存の設定がある場合はデフォルトとマージし、特定の値を正規化
+      let finalConfig = defaults;
+      if (cfg) {
+        finalConfig = { ...defaults, ...cfg }
+        // 空文字や特定のデフォルト無視値を補正
+        if (!finalConfig.obsIp || finalConfig.obsIp === 'localhost') {
+          finalConfig.obsIp = '127.0.0.1'
+        }
+        if (!finalConfig.obsPort) {
+          finalConfig.obsPort = 4455
+        }
+        if (!finalConfig.obsSourceName) {
+          finalConfig.obsSourceName = '映像キャプチャデバイス'
+        }
+      }
+
+      setConfig(finalConfig)
+      
+      // Auto-connect to OBS on startup if configured
+      if (finalConfig.obsIp && finalConfig.obsPort) {
+        // @ts-ignore
+        window.electron.ipcRenderer.invoke('obs-connect', finalConfig)
+      }
+
       if (cfg) {
         if (cfg.language && i18n.language !== cfg.language) {
           i18n.changeLanguage(cfg.language)
@@ -819,8 +1052,7 @@ function App(): JSX.Element {
       } else {
         setStatus('error')
         addLog(`エラー: ${result.error}`, 'error')
-        // @ts-ignore
-        window.electron.ipcRenderer.invoke('show-message', 'error', 'エラー', result.error)
+        showGuiMessage('error', 'エラー', result.error)
       }
     } catch (error: any) {
       setStatus('error')
@@ -1545,16 +1777,28 @@ function App(): JSX.Element {
 
                   {wizardStep === 2 && (
                     <motion.div
-                      key="step2"
+                      key="step1.5"
                       initial={{ x: 20, opacity: 0 }}
                       animate={{ x: 0, opacity: 1 }}
                       exit={{ x: -20, opacity: 0 }}
                       className="space-y-6"
                     >
-                      <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                        <Monitor className="text-blue-400" size={20} />
-                        2. OBS WebSocket 設定
-                      </h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                          <Monitor className="text-blue-400" size={20} />
+                          2. OBS WebSocket 設定
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            autoDetectObsSettings()
+                          }}
+                          className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-800 transition-all flex items-center gap-2"
+                        >
+                          <Monitor size={12} />
+                          {t('config.obsAutoDetect')}
+                        </button>
+                      </div>
                       <p className="text-slate-400 text-sm">
                         マリオカートの画面を取得するためにOBSに接続します。
                       </p>
@@ -1564,9 +1808,10 @@ function App(): JSX.Element {
                           <label className="text-xs font-bold text-slate-500">IPアドレス</label>
                           <input
                             type="text"
-                            value={config?.obsIp || 'localhost'}
+                            value={config?.obsIp || ''}
                             onChange={(e) => setConfig({ ...config, obsIp: e.target.value })}
                             className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                            placeholder="127.0.0.1"
                           />
                         </div>
                         <div className="space-y-2">
@@ -1594,24 +1839,77 @@ function App(): JSX.Element {
                         />
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-500">キャプチャソース名</label>
-                        <input
-                          type="text"
-                          value={config?.obsSourceName || ''}
-                          onChange={(e) => setConfig({ ...config, obsSourceName: e.target.value })}
-                          placeholder="映像キャプチャデバイス など"
-                          className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                        />
-                      </div>
-
-                      <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800 space-y-3">
-                        <h4 className="text-sm font-bold text-slate-300">OBS側の設定確認:</h4>
-                        <ol className="text-xs text-slate-400 space-y-2 list-decimal list-inside">
-                          <li>OBSの「ツール」→「WebSocket サーバー設定」を開く</li>
-                          <li>「WebSocket サーバーを有効にする」にチェックを入れる</li>
-                          <li>ポート（通常4455）とパスワードを確認する</li>
-                        </ol>
+                      <div className="space-y-4">
+                        <div className="space-y-2 relative">
+                          <label className="text-xs font-bold text-slate-500">キャプチャソース名</label>
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              {obsInputs && obsInputs.length > 0 ? (
+                                <select
+                                  value={config?.obsSourceName || ''}
+                                  onChange={(e) => setConfig({ ...config, obsSourceName: e.target.value })}
+                                  className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                                >
+                                  <option value="" disabled>ソースを選択してください</option>
+                                  {obsInputs.map((input: any) => (
+                                    <option key={input.inputName} value={input.inputName}>
+                                      {input.inputName} ({input.inputKind.replace('_', ' ')})
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={config?.obsSourceName || ''}
+                                  onChange={(e) => setConfig({ ...config, obsSourceName: e.target.value })}
+                                  placeholder="キャプチャソース名を入力または接続テスト"
+                                  className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                                />
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                setIsObsConnecting(true)
+                                try {
+                                  // @ts-ignore
+                                  const result = await window.electron.ipcRenderer.invoke('obs-connect', config)
+                                  if (result.success) {
+                                    // @ts-ignore
+                                    const inputsResult = await window.electron.ipcRenderer.invoke('obs-get-inputs')
+                                    if (inputsResult.success) setObsInputs(inputsResult.inputs)
+                                    
+                                    if (!config?.obsSourceName) {
+                                      // @ts-ignore
+                                      const sourceResult = await window.electron.ipcRenderer.invoke('obs-find-best-source')
+                                      if (sourceResult.success && sourceResult.sourceName) {
+                                        setConfig({ ...config, obsSourceName: sourceResult.sourceName })
+                                      }
+                                    }
+                                  } else {
+                                    showGuiMessage('error', '接続失敗', result.error)
+                                  }
+                                } finally {
+                                  setIsObsConnecting(false)
+                                }
+                              }}
+                              className={cn(
+                                "px-6 rounded-xl font-bold transition-all flex items-center gap-2 border whitespace-nowrap",
+                                obsStatus 
+                                  ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-500 cursor-default" 
+                                  : "bg-blue-600 hover:bg-blue-500 text-white border-transparent shadow-lg shadow-blue-900/20"
+                              )}
+                            >
+                              {isObsConnecting ? <RefreshCw size={14} className="animate-spin" /> : <Zap size={14} />}
+                              {obsStatus ? "接続済み" : "接続テスト"}
+                            </button>
+                          </div>
+                          {!obsStatus && !obsInputs.length && (
+                            <p className="text-[10px] text-slate-500 italic ml-1">
+                              ※ 接続テストに成功すると、OBS内のソース一覧が自動取得されます。
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex justify-between pt-6">
@@ -1643,13 +1941,23 @@ function App(): JSX.Element {
                         すべての設定が完了しました。これから「Grosoq」の超高速解析を体験しましょう。
                       </p>
 
-                      <div className="pt-8">
+                      <div className="pt-8 flex flex-col gap-4">
+                        {obsStatus && (
+                          <button
+                            onClick={autoSetupObsOverlay}
+                            className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 px-8 py-3 rounded-xl font-bold transition-all border border-blue-500/30 flex items-center gap-2 mx-auto text-sm"
+                          >
+                            <ExternalLink size={16} />
+                            OBSにオーバーレイを自動追加する
+                          </button>
+                        )}
                         <button
                           onClick={async () => {
                             // 設定を保存してウィザードを閉じる
                             if (window.electron && window.electron.ipcRenderer) {
                               const result = await window.electron.ipcRenderer.invoke('save-config', config)
                               if (result.success) {
+                                setIsDirty(false) // 重要: ウィザード終了時はdirtyを解消
                                 setShowWizard(false)
                                 addLog('初期設定が完了しました', 'success')
                               }
@@ -1713,7 +2021,7 @@ function App(): JSX.Element {
                 title={isSidebarCollapsed ? `v${appVersion} - アップデート確認` : undefined}
               >
                 {isCheckingUpdate ? <RefreshCw size={14} className="animate-spin" /> : <Download size={14} />}
-                {!isSidebarCollapsed && (updateInfo ? "アップデートあり！" : "アップデート確認")}
+                {!isSidebarCollapsed && (updateInfo ? "アップデートがあります！" : "アップデート確認")}
               </button>
             </div>
           </div>
@@ -2641,10 +2949,47 @@ function App(): JSX.Element {
                     </div>
 
                     <section className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6">
-                      <h3 className="text-lg font-bold flex items-center gap-2 text-blue-400">
-                        <Monitor size={20} />
-                        OBS WebSocket 設定
-                      </h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold flex items-center gap-2 text-blue-400">
+                          <Monitor size={20} />
+                          OBS WebSocket 設定
+                        </h3>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={autoDetectObsSettings}
+                            className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-800 transition-all flex items-center gap-2"
+                          >
+                            <Monitor size={12} />
+                            {t('config.obsAutoDetect')}
+                          </button>
+                          <div className={cn(
+                            "w-2.5 h-2.5 rounded-full shadow-[0_0_8px]",
+                            obsStatus ? "bg-emerald-500 shadow-emerald-500/50" : "bg-red-500 shadow-red-500/50"
+                          )} />
+                          <span className={cn(
+                            "text-xs font-bold uppercase tracking-wider",
+                            obsStatus ? "text-emerald-500" : "text-red-500"
+                          )}>
+                            {obsStatus ? t('config.obsStatusConnected') : t('config.obsStatusDisconnected')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={toggleObsConnection}
+                            disabled={isObsConnecting}
+                            className={cn(
+                              "text-xs px-3 py-1.5 rounded-lg border transition-all active:scale-95 flex items-center gap-2",
+                              obsStatus 
+                                ? "bg-red-500/10 border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white" 
+                                : "bg-emerald-500/10 border-emerald-500/50 text-emerald-500 hover:bg-emerald-500 hover:text-white"
+                            )}
+                          >
+                            {isObsConnecting ? <RefreshCw size={12} className="animate-spin" /> : null}
+                            {obsStatus ? t('config.obsDisconnect') : t('config.obsConnect')}
+                          </button>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-slate-400">{t('config.obsIp')}</label>
@@ -2675,23 +3020,52 @@ function App(): JSX.Element {
                           className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                         />
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2 relative">
                         <label className="text-sm font-medium text-slate-400">{t('config.obsSourceName')}</label>
-                        <input
-                          name="obsSourceName"
-                          type="text"
-                          defaultValue={config?.obsSourceName}
-                          placeholder={t('config.obsSourceNamePlaceholder')}
-                          className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                        />
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <input
+                              name="obsSourceName"
+                              list="obs-source-list"
+                              type="text"
+                              defaultValue={config?.obsSourceName}
+                              placeholder={t('config.obsSourceNamePlaceholder')}
+                              className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                            />
+                            <datalist id="obs-source-list">
+                              {obsInputs && obsInputs.map((input: any) => (
+                                <option key={input.inputName} value={input.inputName}>
+                                  {input.inputKind}
+                                </option>
+                              ))}
+                            </datalist>
+                          </div>
+                          {!obsStatus && (
+                            <p className="absolute -bottom-5 right-0 text-[10px] text-slate-500">
+                              {t('config.obsSourceDropdownHint')}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => window.electron.ipcRenderer.invoke('refresh-obs-browser-sources')}
-                        className="w-full bg-slate-800/50 hover:bg-slate-800 text-slate-300 py-3 rounded-xl font-medium transition-all border border-slate-700"
-                      >
-                        OBSブラウザソースを強制リフレッシュ
-                      </button>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => window.electron.ipcRenderer.invoke('refresh-obs-browser-sources')}
+                          className="flex items-center justify-center gap-2 bg-slate-800/50 hover:bg-slate-800 text-slate-300 py-3 rounded-xl font-medium transition-all border border-slate-700 active:scale-[0.98]"
+                        >
+                          <RefreshCw size={16} />
+                          ソースをリフレッシュ
+                        </button>
+                        <button
+                          type="button"
+                          onClick={autoSetupObsOverlay}
+                          className="flex items-center justify-center gap-2 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white py-3 rounded-xl font-bold transition-all border border-blue-500/30 active:scale-[0.98] group"
+                        >
+                          <ExternalLink size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                          {t('config.obsAutoSetup')}
+                        </button>
+                      </div>
                     </section>
 
                     <section className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6">
@@ -2813,6 +3187,14 @@ function App(): JSX.Element {
             </AnimatePresence>
           </div>
         </main>
+
+        <MessageModal
+          isOpen={!!guiModal}
+          onClose={() => setGuiModal(null)}
+          type={guiModal?.type || 'info'}
+          title={guiModal?.title || ''}
+          message={guiModal?.message || ''}
+        />
 
         <ConfirmModal
           isOpen={showConfirmModal}

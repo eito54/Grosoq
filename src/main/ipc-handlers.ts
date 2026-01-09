@@ -4,8 +4,7 @@ import { ConfigManager } from './config-manager'
 import { EmbeddedServer } from './server'
 import { ApiManager } from './api-manager'
 import { makeHttpRequest, compareVersions } from './utils'
-import https from 'https'
-import { OBSWebSocket } from 'obs-websocket-js'
+import { ObsManager } from './obs-manager'
 
 export function registerIpcHandlers(
   configManager: ConfigManager,
@@ -14,6 +13,15 @@ export function registerIpcHandlers(
   getServerPort: () => number
 ): void {
   const apiManager = new ApiManager(configManager)
+  const obsManager = ObsManager.getInstance()
+
+  // Notify renderer about OBS status changes
+  obsManager.on('status-change', (isConnected) => {
+    const mainWindow = getMainWindow()
+    if (mainWindow) {
+      mainWindow.webContents.send('obs-status-change', isConnected)
+    }
+  })
 
   // Configure auto-updater
   autoUpdater.autoDownload = false
@@ -191,32 +199,94 @@ export function registerIpcHandlers(
     }
   })
 
+  ipcMain.handle('obs-connect', async (_, testConfig?: any) => {
+    try {
+      // マージして、足りない項目は現在の設定またはデフォルトで補完する
+      // 空文字や 0 の場合はデフォルトを優先するようにガードを入れる
+      let baseConfig = configManager.getConfig()
+      let merged = { ...baseConfig, ...testConfig }
+      
+      if (!merged.obsIp || merged.obsIp.trim() === '') merged.obsIp = baseConfig.obsIp || '127.0.0.1'
+      if (!merged.obsPort) merged.obsPort = baseConfig.obsPort || 4455
+
+      await obsManager.connect(merged)
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('obs-disconnect', async () => {
+    try {
+      await obsManager.disconnect()
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('obs-get-status', () => {
+    return obsManager.getStatus()
+  })
+
+  ipcMain.handle('obs-get-inputs', async () => {
+    try {
+      const inputs = await obsManager.getInputList()
+      return { success: true, inputs }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('obs-detect-settings', async () => {
+    try {
+      const result = await obsManager.detectLocalSettings()
+      return { success: true, settings: result }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('obs-find-best-source', async () => {
+    try {
+      const sourceName = await obsManager.findBestCaptureSource()
+      return { success: true, sourceName }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
+  ipcMain.handle('obs-auto-setup', async () => {
+    try {
+      await obsManager.autoSetupOverlay(getServerPort())
+      return { success: true }
+    } catch (error: any) {
+      return { success: false, error: error.message }
+    }
+  })
+
   ipcMain.handle('refresh-obs-browser-sources', async () => {
     try {
-      const config = configManager.getConfig()
-      const obs = new OBSWebSocket()
-      const obsPort = config.obsPort || 4455
-      const obsIp = config.obsIp === 'localhost' ? '127.0.0.1' : config.obsIp
-      const obsUrl = `ws://${obsIp}:${obsPort}`
-
-      if (config.obsPassword && config.obsPassword.trim() !== '') {
-        await obs.connect(obsUrl, config.obsPassword)
-      } else {
-        await obs.connect(obsUrl)
+      if (!obsManager.getStatus()) {
+        const config = configManager.getConfig()
+        await obsManager.connect(config)
       }
 
-      const sources = await obs.call('GetInputList', { inputKind: 'browser_source' })
-      for (const source of sources.inputs) {
-        const settings = await obs.call('GetInputSettings', { inputName: source.inputName as string })
+      const inputs = await obsManager.getInputList()
+      const browserSources = inputs.filter(i => i.inputKind === 'browser_source')
+      const port = getServerPort().toString()
+
+      for (const source of browserSources) {
+        const inputName = source.inputName as string
+        const settings = await obsManager.call('GetInputSettings', { inputName })
         const url = settings.inputSettings.url as string
-        if (url && (url.includes('localhost') || url.includes('127.0.0.1')) && url.includes(getServerPort().toString())) {
-          await obs.call('PressInputPropertiesButton', {
-            inputName: source.inputName as string,
+        if (url && (url.includes('localhost') || url.includes('127.0.0.1')) && url.includes(port)) {
+          await obsManager.call('PressInputPropertiesButton', {
+            inputName,
             propertyName: 'refreshnocache'
           })
         }
       }
-      await obs.disconnect()
       return { success: true, message: 'OBSブラウザソースを再読み込みしました' }
     } catch (error: any) {
       return { success: false, error: error.message }

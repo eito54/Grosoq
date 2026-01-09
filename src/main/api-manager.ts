@@ -1,4 +1,4 @@
-import { OBSWebSocket } from 'obs-websocket-js'
+import { ObsManager } from './obs-manager'
 import { ConfigManager } from './config-manager'
 import fs from 'fs'
 import path from 'path'
@@ -22,7 +22,6 @@ export interface AnalyzeRaceResponse {
 
 export class ApiManager {
   private configManager: ConfigManager
-  private modelsCache: { models: string[], apiKey: string, timestamp: number } | null = null
   private lastAnalysisHash: string | null = null
   private lastAnalysisResult: AnalyzeRaceResponse | null = null
   private isAnalyzing: boolean = false
@@ -184,32 +183,16 @@ export class ApiManager {
 
   async getObsScreenshot(): Promise<string> {
     const config = this.configManager.getConfig()
-    const obs = new OBSWebSocket()
-    const obsPort = config.obsPort || 4455
-    const obsIp = config.obsIp === 'localhost' ? '127.0.0.1' : config.obsIp
-    const obsUrl = `ws://${obsIp}:${obsPort}`
+    const obsManager = ObsManager.getInstance()
 
     try {
-      if (config.obsPassword && config.obsPassword.trim() !== '') {
-        await obs.connect(obsUrl, config.obsPassword)
-      } else {
-        await obs.connect(obsUrl)
+      if (!obsManager.getStatus()) {
+        await obsManager.connect(config)
       }
 
-      const response = await obs.call('GetSourceScreenshot', {
-        sourceName: config.obsSourceName,
-        imageFormat: 'jpg',
-        imageWidth: 1280,
-        imageHeight: 720
-      })
-
-      await obs.disconnect()
-      return response.imageData
+      return await obsManager.getScreenshot(config.obsSourceName)
     } catch (error) {
       console.error('OBS Screenshot Error:', error)
-      try {
-        await obs.disconnect()
-      } catch (e) { }
       throw error
     }
   }
