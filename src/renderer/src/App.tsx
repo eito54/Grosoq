@@ -24,7 +24,9 @@ import {
   ChevronRight,
   Layout,
   Github,
-  Twitter
+  Twitter,
+  Clipboard,
+  Check
 } from 'lucide-react'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -658,6 +660,11 @@ function App(): JSX.Element {
   const [selectedOverlayTheme, setSelectedOverlayTheme] = useState<string>('default')
   const [selectedOwnTeamStyle, setSelectedOwnTeamStyle] = useState<string>('rainbow')
 
+  // Persist manually selected current team
+  // Persist manually selected current team
+  const [manualCurrentTeam, setManualCurrentTeam] = useState<string | null>(null)
+  const [isCopied, setIsCopied] = useState(false)
+
 
   const handleCloseWhatsNew = async () => {
     setShowWhatsNew(false)
@@ -1024,6 +1031,7 @@ function App(): JSX.Element {
           raceResults.forEach((res: any) => {
             const teamName = res.team || 'UNKNOWN'
             const score = calculateRaceScore(res.rank)
+
             if (!tempMap[teamName]) {
               tempMap[teamName] = { name: teamName, score: 0, addedScore: 0, isCurrentPlayer: false }
             }
@@ -1032,6 +1040,18 @@ function App(): JSX.Element {
             tempMap[teamName].isCurrentPlayer = tempMap[teamName].isCurrentPlayer || res.isCurrentPlayer
           })
           finalScores = normalizeAndMergeTeams(Object.values(tempMap))
+        }
+
+
+        if (manualCurrentTeam) {
+          finalScores.forEach(s => {
+            const tName = s.name || s.team;
+            if (tName === manualCurrentTeam) {
+              s.isCurrentPlayer = true;
+            } else {
+              s.isCurrentPlayer = false;
+            }
+          });
         }
 
         // 自チームフラグのクリーンアップ（複数のチームに立つのを防ぐ）
@@ -1050,7 +1070,7 @@ function App(): JSX.Element {
         })
 
         loadScores()
-        loadPlayerMappings()
+        // loadPlayerMappings() // Removed as per instruction
       } else {
         setStatus('error')
         addLog(`エラー: ${result.error}`, 'error')
@@ -1281,6 +1301,7 @@ function App(): JSX.Element {
       await fetch(`http://localhost:${serverPort}/api/scores/reset`, { method: 'POST' })
       loadScores()
       loadPlayerMappings()
+      setManualCurrentTeam(null)
       addLog('スコアとマッピングをリセットしました', 'success')
       setShowResetConfirmModal(false)
     } catch (error) {
@@ -2369,9 +2390,30 @@ function App(): JSX.Element {
                       <div className="p-6 border-b border-slate-800 flex justify-between items-center">
                         <h3 className="font-bold text-lg flex items-center gap-2">
                           <BarChart3 size={20} className="text-blue-500" />
+                          <BarChart3 size={20} className="text-blue-500" />
                           現在のスコア
                         </h3>
                         <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              const sortedRatio = [...scores].sort((a, b) => b.score - a.score);
+                              const text = sortedRatio.map((s, i) => `${i + 1}. ${s.name || s.team}: ${s.score}pts`).join('\n');
+                              navigator.clipboard.writeText(text);
+                              addLog('順位をクリップボードにコピーしました', 'success');
+                              setIsCopied(true);
+                              setTimeout(() => setIsCopied(false), 2000);
+                            }}
+                            className={cn(
+                              "text-sm flex items-center gap-1 transition-all mr-2 px-2 py-1 rounded-md",
+                              isCopied
+                                ? "text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                            )}
+                            title={isCopied ? "コピーしました！" : "順位をコピー"}
+                          >
+                            {isCopied ? <Check size={16} /> : <Clipboard size={16} />}
+                            {isCopied && <span className="text-xs font-bold">Copied!</span>}
+                          </button>
                           {isEditing ? (
                             <>
                               <button
@@ -2432,9 +2474,11 @@ function App(): JSX.Element {
                                   onRemove={handleRemoveTeam}
                                   onChange={handleScoreChange}
                                   onSetCurrentPlayer={() => {
+                                    const teamName = team.name || team.team
+                                    setManualCurrentTeam(teamName)
                                     const newScores = scores.map(t => ({
                                       ...t,
-                                      isCurrentPlayer: (t.name || t.team) === (team.name || team.team)
+                                      isCurrentPlayer: (t.name || t.team) === teamName
                                     }))
                                     handleSaveEditedScores(newScores)
                                   }}
@@ -2532,7 +2576,6 @@ function App(): JSX.Element {
                                     <div className="text-sm font-bold text-blue-400">{slot.scores.length}</div>
                                   </div>
                                   <div className="bg-slate-900/50 p-2 rounded-lg border border-slate-800">
-                                    <div className="text-[10px] text-slate-500 uppercase">合計点</div>
                                     <div className="text-sm font-bold text-emerald-400">
                                       {slot.scores.reduce((sum: number, s: any) => sum + s.score, 0)}
                                     </div>
@@ -2692,11 +2735,11 @@ function App(): JSX.Element {
                             ))
                           ) : (
                             Object.entries(playerMappings).length > 0 ? (
-                              Object.entries(playerMappings).map(([name, team]) => (
-                                <tr key={name} className="group">
-                                  <td className="py-4 text-white font-medium">{name}</td>
-                                  <td className="py-4">
-                                    <span className="px-3 py-1 bg-blue-500/10 text-blue-400 rounded-full text-sm font-medium border border-blue-500/20">
+                              Object.entries(playerMappings).map(([name, team], index) => (
+                                <tr key={index} className="group hover:bg-slate-800/30 transition-colors">
+                                  <td className="py-4 pr-4 font-medium text-white">{name}</td>
+                                  <td className="py-4 pr-4">
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
                                       {team}
                                     </span>
                                   </td>

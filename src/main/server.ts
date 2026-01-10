@@ -39,6 +39,10 @@ export class EmbeddedServer {
     return path.join(app.getPath('userData'), 'overlay-colors.json')
   }
 
+  private getPlayerScoresPath(): string {
+    return path.join(app.getPath('userData'), 'player-scores.json')
+  }
+
   private setupMiddleware(): void {
     // Static files for overlay
     // Packaged: resources/app/public
@@ -118,7 +122,7 @@ export class EmbeddedServer {
       setTimeout(() => {
         try {
           res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: Date.now() })}\n\n`)
-        } catch (e) {}
+        } catch (e) { }
       }, 100)
 
       req.on('close', () => {
@@ -200,9 +204,11 @@ export class EmbeddedServer {
       try {
         const scoresPath = this.getScoresPath()
         const mappingPath = this.getPlayerMappingPath()
+        const playerScoresPath = this.getPlayerScoresPath()
 
         if (fs.existsSync(scoresPath)) fs.writeFileSync(scoresPath, JSON.stringify([], null, 2))
         if (fs.existsSync(mappingPath)) fs.writeFileSync(mappingPath, JSON.stringify({}, null, 2))
+        if (fs.existsSync(playerScoresPath)) fs.writeFileSync(playerScoresPath, JSON.stringify({}, null, 2))
 
         const metaPath = path.join(path.dirname(scoresPath), 'scores-meta.json')
         if (fs.existsSync(metaPath)) fs.unlinkSync(metaPath)
@@ -347,6 +353,31 @@ export class EmbeddedServer {
         if (!fs.existsSync(mappingDir)) fs.mkdirSync(mappingDir, { recursive: true })
 
         fs.writeFileSync(mappingPath, JSON.stringify(req.body, null, 2))
+        this.broadcastScoreUpdate()
+        res.json({ success: true })
+      } catch (error: any) {
+        res.status(500).json({ success: false, error: error.message })
+      }
+    })
+
+    // Player Scores API
+    this.app.get('/api/player-scores', (_req: Request, res: Response) => {
+      try {
+        const scoresPath = this.getPlayerScoresPath()
+        if (fs.existsSync(scoresPath)) {
+          res.json(JSON.parse(fs.readFileSync(scoresPath, 'utf8')))
+        } else {
+          res.json({})
+        }
+      } catch (error: any) {
+        res.status(500).json({ error: error.message })
+      }
+    })
+
+    this.app.post('/api/player-scores', (req: Request, res: Response) => {
+      try {
+        const scoresPath = this.getPlayerScoresPath()
+        fs.writeFileSync(scoresPath, JSON.stringify(req.body, null, 2))
         this.broadcastScoreUpdate()
         res.json({ success: true })
       } catch (error: any) {
