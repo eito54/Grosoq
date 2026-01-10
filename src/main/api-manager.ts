@@ -234,8 +234,27 @@ export class ApiManager {
         : ''
 
       const prompt = useTotalScore
-        ? `Mario Kart 8DX results. Extract into JSON: results: [{name, team, score, isCurrentPlayer(yellow bg)}]. ${existingMappingsText}`
-        : `Mario Kart 8DX results. Extract into JSON: results: [{rank, name, team, totalScore, isCurrentPlayer(yellow bg)}]. ${existingMappingsText}`
+        ? `You are an expert OCR system for Mario Kart 8 Deluxe. Analyze the provided score result screen.
+Extract exactly 12 rows of data if possible.
+For each row, extract the following fields:
+- "name": The player name text located between the character icon and the country flag.
+- "score": The number on the far right.
+- "team": If a team is visible, extract it (often A, B, etc. at start of name). If not, make best guess or leave empty.
+- "isCurrentPlayer": Set to true IF AND ONLY IF the row has a YELLOW background highlight.
+${existingMappingsText}
+Return ONLY valid JSON matching this schema: { results: [{ name: string, team: string, score: number, isCurrentPlayer: boolean }] }`
+        : `You are an expert OCR system for Mario Kart 8 Deluxe. Analyze the provided race result screen.
+The image typically contains a table with 12 rows.
+Columns from left to right: Rank (number), Character Icon, Player Name, Country Flag, Score/Points (number).
+Rules:
+1. Extract ALL 12 rows.
+2. "rank": The number on the far left.
+3. "name": The text between the character icon and the country flag. Preserve special characters if possible, but prioritize readable text.
+4. "team": Often the first letter of the name or distinct prefix.
+5. "score": The number on the far right.
+6. "isCurrentPlayer": Check for a distinct YELLOW background highlighting the entire row. Set to true if present.
+${existingMappingsText}
+Return ONLY valid JSON matching this schema: { results: [{ rank: number, name: string, team: string, totalScore: number, isCurrentPlayer: boolean }] }`
 
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
