@@ -22,7 +22,9 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Layout
+  Layout,
+  Github,
+  Twitter
 } from 'lucide-react'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
@@ -155,9 +157,9 @@ function MessageModal({
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             className={cn(
               "relative w-full max-w-md bg-slate-900 border-2 rounded-2xl overflow-hidden shadow-2xl",
-              type === 'error' ? "border-red-500/50 shadow-red-900/20" : 
-              type === 'success' ? "border-emerald-500/50 shadow-emerald-900/20" : 
-              "border-blue-500/50 shadow-blue-900/20"
+              type === 'error' ? "border-red-500/50 shadow-red-900/20" :
+                type === 'success' ? "border-emerald-500/50 shadow-emerald-900/20" :
+                  "border-blue-500/50 shadow-blue-900/20"
             )}
           >
             <div className={cn(
@@ -169,8 +171,8 @@ function MessageModal({
                 <div className={cn(
                   "w-12 h-12 rounded-2xl flex items-center justify-center border-2",
                   type === 'error' ? "bg-red-500/10 border-red-500/30 text-red-500" :
-                  type === 'success' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500" :
-                  "bg-blue-500/10 border-blue-500/30 text-blue-500"
+                    type === 'success' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500" :
+                      "bg-blue-500/10 border-blue-500/30 text-blue-500"
                 )}>
                   <Icon size={28} />
                 </div>
@@ -190,8 +192,8 @@ function MessageModal({
                 className={cn(
                   "w-full py-4 font-black rounded-xl transition-all shadow-lg active:scale-95 text-white uppercase tracking-widest text-sm",
                   type === 'error' ? "bg-red-600 hover:bg-red-500 shadow-red-900/40" :
-                  type === 'success' ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/40" :
-                  "bg-blue-600 hover:bg-blue-500 shadow-blue-900/40"
+                    type === 'success' ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/40" :
+                      "bg-blue-600 hover:bg-blue-500 shadow-blue-900/40"
                 )}
               >
                 OK
@@ -633,7 +635,7 @@ function App(): JSX.Element {
   const [obsStatus, setObsStatus] = useState(false)
   const [obsInputs, setObsInputs] = useState<any[]>([])
   const [isObsConnecting, setIsObsConnecting] = useState(false)
-  
+
   const [guiModal, setGuiModal] = useState<{
     type: 'info' | 'error' | 'success',
     title: string,
@@ -790,7 +792,7 @@ function App(): JSX.Element {
       const updatedConfig = { ...config, obsPort: port, obsPassword: password }
       setConfig(updatedConfig)
       setIsDirty(true)
-      
+
       if (!enabled) {
         showGuiMessage('info', 'OBS設定を読み込みました', '設定を読み込みましたが、OBS側で「WebSocketサーバー」が無効になっているようです。OBSの「ツール」→「WebSocketサーバー設定」から有効にしてください。')
       } else {
@@ -823,10 +825,10 @@ function App(): JSX.Element {
       }
       // @ts-ignore
       let cfg = await window.electron.ipcRenderer.invoke('get-config')
-      
+
       // 完全に新規の場合のデフォルト値
-      const defaults = { 
-        obsIp: '127.0.0.1', 
+      const defaults = {
+        obsIp: '127.0.0.1',
         obsPort: 4455,
         obsSourceName: '映像キャプチャデバイス',
         aiProvider: 'groq',
@@ -843,7 +845,7 @@ function App(): JSX.Element {
           ownTeamGradient: 'blue'
         }
       }
-      
+
       // 既存の設定がある場合はデフォルトとマージし、特定の値を正規化
       let finalConfig = defaults;
       if (cfg) {
@@ -861,7 +863,7 @@ function App(): JSX.Element {
       }
 
       setConfig(finalConfig)
-      
+
       // Auto-connect to OBS on startup if configured
       if (finalConfig.obsIp && finalConfig.obsPort) {
         // @ts-ignore
@@ -1878,7 +1880,7 @@ function App(): JSX.Element {
                                     // @ts-ignore
                                     const inputsResult = await window.electron.ipcRenderer.invoke('obs-get-inputs')
                                     if (inputsResult.success) setObsInputs(inputsResult.inputs)
-                                    
+
                                     if (!config?.obsSourceName) {
                                       // @ts-ignore
                                       const sourceResult = await window.electron.ipcRenderer.invoke('obs-find-best-source')
@@ -1895,8 +1897,8 @@ function App(): JSX.Element {
                               }}
                               className={cn(
                                 "px-6 rounded-xl font-bold transition-all flex items-center gap-2 border whitespace-nowrap",
-                                obsStatus 
-                                  ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-500 cursor-default" 
+                                obsStatus
+                                  ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-500 cursor-default"
                                   : "bg-blue-600 hover:bg-blue-500 text-white border-transparent shadow-lg shadow-blue-900/20"
                               )}
                             >
@@ -2778,7 +2780,7 @@ function App(): JSX.Element {
                                 <Palette size={16} className="text-blue-400" />
                                 デフォルトテーマ配色設定
                               </h4>
-                              
+
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
                                   <label className="text-sm font-medium text-slate-200">スコア加算エフェクト色</label>
@@ -2813,7 +2815,7 @@ function App(): JSX.Element {
 
                               {/* 条件付き表示: 自チームの詳細設定 */}
                               {(selectedOwnTeamStyle === 'solid' || selectedOwnTeamStyle === 'gradient') && (
-                                <motion.div 
+                                <motion.div
                                   initial={{ opacity: 0, y: -10 }}
                                   animate={{ opacity: 1, y: 0 }}
                                   className="p-4 bg-[#0f172a] rounded-xl border border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-6"
@@ -2979,8 +2981,8 @@ function App(): JSX.Element {
                             disabled={isObsConnecting}
                             className={cn(
                               "text-xs px-3 py-1.5 rounded-lg border transition-all active:scale-95 flex items-center gap-2",
-                              obsStatus 
-                                ? "bg-red-500/10 border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white" 
+                              obsStatus
+                                ? "bg-red-500/10 border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white"
                                 : "bg-emerald-500/10 border-emerald-500/50 text-emerald-500 hover:bg-emerald-500 hover:text-white"
                             )}
                           >
@@ -3176,8 +3178,36 @@ function App(): JSX.Element {
                     {t('app.subtitle')}
                   </p>
                   <div className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl text-left space-y-4">
-                    <h3 className="font-bold text-lg border-b border-slate-800 pb-2 mb-4">使用方法</h3>
-                    <div className="space-y-4 text-slate-300" dangerouslySetInnerHTML={{ __html: t('usage.steps') }} />
+                    <h3 className="font-bold text-lg border-b border-slate-800 pb-2 mb-4">開発者情報 (Developer)</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* GitHub Link */}
+                      <button
+                        onClick={() => window.electron.ipcRenderer.invoke('open-external', 'https://github.com/eito54/Grosoq')}
+                        className="bg-[#24292e] hover:bg-[#2f363d] text-white p-4 rounded-xl border border-slate-700 hover:border-slate-500 transition-all group flex flex-col items-center gap-3 shadow-lg"
+                      >
+                        <div className="p-3 bg-white/10 rounded-full group-hover:scale-110 transition-transform">
+                          <Github size={24} />
+                        </div>
+                        <div className="text-center">
+                          <p className="font-bold text-sm">GitHub</p>
+                          <p className="text-[10px] text-slate-400">eito54/Grosoq</p>
+                        </div>
+                      </button>
+
+                      {/* X (Twitter) Link */}
+                      <button
+                        onClick={() => window.electron.ipcRenderer.invoke('open-external', 'https://x.com/eiteen05')}
+                        className="bg-black hover:bg-slate-900 text-white p-4 rounded-xl border border-slate-700 hover:border-slate-500 transition-all group flex flex-col items-center gap-3 shadow-lg"
+                      >
+                        <div className="p-3 bg-white/10 rounded-full group-hover:scale-110 transition-transform">
+                          <Twitter size={24} />
+                        </div>
+                        <div className="text-center">
+                          <p className="font-bold text-sm">X (Twitter)</p>
+                          <p className="text-[10px] text-slate-400">@eiteen05</p>
+                        </div>
+                      </button>
+                    </div>
                   </div>
                   <p className="text-slate-500 pt-8">
                     {t('footer.madeWith')}
