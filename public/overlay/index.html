@@ -25,7 +25,7 @@
             content: '';
             position: absolute;
             /* 画像を少しだけ外側に広げて隙間を埋める */
-            inset: -1px; 
+            inset: -1px;
             z-index: 0;
             background-image: url('/overlay/background.png');
             background-size: 100% 100%;
@@ -44,20 +44,25 @@
             background-origin: border-box;
         }
 
-        .theme-mkw #scores-container > div {
-            gap: 2px !important; /* チームごとの隙間を最小限に */
+        .theme-mkw #scores-container>div {
+            gap: 2px !important;
+            /* チームごとの隙間を最小限に */
         }
 
         .theme-mkw [data-team-row] {
-            height: 32px !important; /* 行の高さを少し詰め、隙間を小さく見せる */
+            height: 32px !important;
+            /* 行の高さを少し詰め、隙間を小さく見せる */
         }
 
         @keyframes currentPlayerPulseMKW {
-            0%, 100% { 
+
+            0%,
+            100% {
                 box-shadow: 0 0 10px 2px rgba(251, 191, 36, 0.6);
                 border-color: #fbbf24;
             }
-            50% { 
+
+            50% {
                 box-shadow: 0 0 20px 4px rgba(251, 191, 36, 0.8);
                 border-color: #fff;
             }
@@ -86,8 +91,13 @@
 
         /* 滑らかなグラデーション移動アニメーション */
         @keyframes flowGradient {
-            0% { background-position: 0% 0%, 0% 0%; }
-            100% { background-position: 0% 0%, -200% 0%; }
+            0% {
+                background-position: 0% 0%, 0% 0%;
+            }
+
+            100% {
+                background-position: 0% 0%, 100% 0%;
+            }
         }
 
         /* 躍動感のある加算得点アニメーション */
@@ -226,52 +236,67 @@
             transform: skewX(-12deg);
             border-radius: 0.5rem;
             background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.9)) padding-box,
-                        linear-gradient(to right, 
-                            hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), 
-                            hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), 
-                            hsl(360, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), 
-                            hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), 
-                            hsl(360, 100%, 50%)) border-box;
+                linear-gradient(to right,
+                    hsl(0, 100%, 50%) 0%,
+                    hsl(60, 100%, 50%) 8.33%,
+                    hsl(120, 100%, 50%) 16.66%,
+                    hsl(180, 100%, 50%) 25%,
+                    hsl(240, 100%, 50%) 33.33%,
+                    hsl(300, 100%, 50%) 41.66%,
+                    hsl(360, 100%, 50%) 50%,
+                    hsl(60, 100%, 50%) 58.33%,
+                    hsl(120, 100%, 50%) 66.66%,
+                    hsl(180, 100%, 50%) 75%,
+                    hsl(240, 100%, 50%) 83.33%,
+                    hsl(300, 100%, 50%) 91.66%,
+                    hsl(360, 100%, 50%) 100%) border-box;
             background-size: 100% 100%, 200% 100%;
             background-clip: padding-box, border-box;
             background-origin: padding-box, border-box;
-            animation: flowGradient 6s linear infinite;
+            animation: flowGradient 3s linear infinite;
         }
 
         /* グラデーションバリエーション (高速かつ滑らかな描画に改善) */
         .gradient-blue-border::before {
             background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.9)) padding-box,
-                        linear-gradient(to right, #1d4ed8, #22d3ee, #1d4ed8, #22d3ee, #1d4ed8) border-box;
+                linear-gradient(to right, #1d4ed8, #22d3ee, #1d4ed8, #22d3ee, #1d4ed8) border-box;
             background-size: 100% 100%, 200% 100%;
-            animation: flowGradient 4s linear infinite !important;
-        }
-        .gradient-pink-border::before {
-            background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.9)) padding-box,
-                        linear-gradient(to right, #be123c, #c084fc, #be123c, #c084fc, #be123c) border-box;
-            background-size: 100% 100%, 200% 100%;
-            animation: flowGradient 4s linear infinite !important;
-        }
-        .gradient-orange-border::before {
-            background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.9)) padding-box,
-                        linear-gradient(to right, #c2410c, #fde047, #c2410c, #fde047, #c2410c) border-box;
-            background-size: 100% 100%, 200% 100%;
-            animation: flowGradient 4s linear infinite !important;
-        }
-        .gradient-emerald-border::before {
-            background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.9)) padding-box,
-                        linear-gradient(to right, #15803d, #22d3ee, #15803d, #22d3ee, #15803d) border-box;
-            background-size: 100% 100%, 200% 100%;
-            animation: flowGradient 4s linear infinite !important;
+            animation: flowGradient 3s linear infinite !important;
         }
 
-        .gradient-blue-border::before, .gradient-pink-border::before, .gradient-orange-border::before, .gradient-emerald-border::before {
+        .gradient-pink-border::before {
+            background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.9)) padding-box,
+                linear-gradient(to right, #be123c, #c084fc, #be123c, #c084fc, #be123c) border-box;
+            background-size: 100% 100%, 200% 100%;
+            animation: flowGradient 3s linear infinite !important;
+        }
+
+        .gradient-orange-border::before {
+            background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.9)) padding-box,
+                linear-gradient(to right, #c2410c, #fde047, #c2410c, #fde047, #c2410c) border-box;
+            background-size: 100% 100%, 200% 100%;
+            animation: flowGradient 3s linear infinite !important;
+        }
+
+        .gradient-emerald-border::before {
+            background: linear-gradient(to right, rgba(15, 23, 42, 0.95), rgba(30, 58, 138, 0.9)) padding-box,
+                linear-gradient(to right, #15803d, #22d3ee, #15803d, #22d3ee, #15803d) border-box;
+            background-size: 100% 100%, 200% 100%;
+            animation: flowGradient 3s linear infinite !important;
+        }
+
+        .gradient-blue-border::before,
+        .gradient-pink-border::before,
+        .gradient-orange-border::before,
+        .gradient-emerald-border::before {
             content: '';
             position: absolute;
             inset: -1.5px;
             z-index: 0;
             border: 2px solid transparent;
             transform: skewX(-12deg);
-            border-radius: 0.5rem; /* rounded-lg と一致 */
+            border-radius: 0.5rem;
+            /* rounded-lg と一致 */
             background-clip: padding-box, border-box;
             background-origin: padding-box, border-box;
         }
@@ -326,8 +351,15 @@
         }
 
         @keyframes mkw-score-flash {
-            0%, 100% { filter: brightness(1); }
-            50% { filter: brightness(1.8) contrast(1.2); }
+
+            0%,
+            100% {
+                filter: brightness(1);
+            }
+
+            50% {
+                filter: brightness(1.8) contrast(1.2);
+            }
         }
 
         /* アニメーション終了後にクラスを削除するためのスタイル */
@@ -591,7 +623,7 @@
                 const response = await fetch(`/api/config?t=${Date.now()}`);
                 if (response.ok) {
                     const config = await response.json();
-                    
+
                     // テーマの適用
                     const newTheme = (config.overlayTheme || 'default').toLowerCase();
                     if (newTheme !== currentTheme) {
@@ -603,7 +635,7 @@
                     if (config.overlayColors) {
                         const root = document.documentElement;
                         const colors = config.overlayColors;
-                        
+
                         // エフェクト色
                         if (colors.scoreEffect) {
                             root.style.setProperty('--score-effect-color', colors.scoreEffect);
@@ -613,7 +645,7 @@
                             const b = parseInt(colors.scoreEffect.slice(5, 7), 16);
                             root.style.setProperty('--score-effect-color-rgba', `rgba(${r}, ${g}, ${b}, 0.8)`);
                         }
-                        
+
                         // 自チーム色
                         if (colors.ownTeamColor) {
                             root.style.setProperty('--own-team-color', colors.ownTeamColor);
@@ -671,7 +703,7 @@
                     // 残りレース数表示を隠す
                     const remainingRacesEl = document.getElementById('remaining-races-container');
                     if (remainingRacesEl) remainingRacesEl.style.display = 'none';
-                    
+
                     previousScores.clear();
                     countUpAnimations.forEach(id => clearInterval(id));
                     countUpAnimations.clear();
@@ -724,7 +756,7 @@
 
                     // 演出開始前に状態を更新して後続の重複検知を防止
                     previousTeamOrder = [...currentTeamOrder];
-                    
+
                     await animateRankingChange(currentTeamOrder, scores, container, preAnimationScores);
                 } else if (needsCountUp) {
                     // 順位変動がないがスコアが加算された場合
@@ -816,9 +848,150 @@
             });
         }
 
-        // スコアリストをレンダリングする関数（カウントアップ対応版）
+        // スコアリストをレンダリングする関数（カウントアップ対応版・非破壊更新機能付き）
         function renderScoreList(scores, container, useCountUp = false) {
             const isMKW = currentTheme === 'mkw';
+            const previousRemainingRacesContainer = document.getElementById('remaining-races-container');
+            const previousRemainingRacesDisplay = previousRemainingRacesContainer ? previousRemainingRacesContainer.style.display : 'none';
+
+            // 現在のDOMとの差分チェック（非破壊更新が可能か判定）
+            const currentRows = container.querySelectorAll('[data-team-row]');
+            const canPatch = currentRows.length === scores.length && Array.from(currentRows).every((row, i) => {
+                const teamName = scores[i].team || scores[i].name || '';
+                return row.getAttribute('data-team-row') === teamName;
+            });
+
+            if (canPatch) {
+                // DOM構造が一致するため、要素を破棄せず中身だけ更新する（アニメーション維持のため）
+                scores.forEach((team, index) => {
+                    const row = currentRows[index];
+                    const teamName = team.team || team.name || '';
+                    const isCurrentPlayer = team.isCurrentPlayer === true;
+                    const isTeamSelected = (selectedTeamInfo && selectedTeamInfo.name === teamName);
+                    const isEffectivelyCurrent = isCurrentPlayer || isTeamSelected;
+
+                    // ボーダークラスの計算
+                    let targetBorderClass = 'static-parallelogram-border';
+                    if (isEffectivelyCurrent) {
+                        if (isMKW) {
+                            targetBorderClass = 'mkw-parallelogram mkw-parallelogram-active';
+                        } else {
+                            const style = (window.overlayConfig?.overlayColors?.ownTeamStyle || 'rainbow');
+                            if (style === 'rainbow') targetBorderClass = 'rainbow-border';
+                            else if (style === 'solid') targetBorderClass = 'animated-parallelogram-border';
+                            else if (style === 'gradient') {
+                                const grad = window.overlayConfig?.overlayColors?.ownTeamGradient || 'blue';
+                                targetBorderClass = `gradient-${grad}-border`;
+                            } else targetBorderClass = 'rainbow-border';
+                        }
+                    } else {
+                        targetBorderClass = isMKW ? 'mkw-parallelogram' : 'static-parallelogram-border';
+                    }
+
+                    // チーム名コンテナのボーダー更新
+                    const nameContainer = row.firstElementChild;
+                    updateBorderClass(nameContainer, targetBorderClass);
+
+                    // チーム名テキストスタイルの更新
+                    const nameText = nameContainer.querySelector('span');
+                    if (nameText) {
+                        if (isMKW && isEffectivelyCurrent) {
+                            nameText.className = `text-center font-bold text-yellow-400 whitespace-nowrap px-0.5`;
+                        } else {
+                            nameText.className = `text-center font-medium text-white whitespace-nowrap px-0.5`;
+                        }
+                    }
+
+                    // スコアボックスの更新
+                    const scoreContainer = row.children[1];
+                    const scoreBox = scoreContainer.children[0];
+                    updateBorderClass(scoreBox, targetBorderClass);
+
+                    const scoreText = scoreBox.querySelector('span'); // 最初のspanがスコア
+                    const myTeam = scores.find(s => s.isCurrentPlayer === true) ||
+                        (selectedTeamInfo ? scores.find(s => (s.team || s.name) === selectedTeamInfo.name) : null);
+
+                    // スコア値の更新（カウントアップ中でない場合のみ）
+                    if (!useCountUp || !previousScores.has(teamName) || previousScores.get(teamName) === (team.score || 0)) {
+                        if (scoreText) scoreText.textContent = team.score || 0;
+                    }
+
+                    if (scoreText) {
+                        scoreText.className = `${isMKW ? 'mkw-score-text text-lg' : 'text-base font-medium'} text-center ${isMKW && isEffectivelyCurrent ? 'text-yellow-400' : 'text-white'}`;
+                    }
+
+                    // 加算点加算エフェクトの更新
+                    let addedScoreSpan = scoreBox.querySelector('[data-added-score]');
+                    if (team.addedScore && team.addedScore > 0) {
+                        if (!addedScoreSpan) {
+                            addedScoreSpan = document.createElement('span');
+                            addedScoreSpan.setAttribute('data-added-score', teamName);
+                            addedScoreSpan.className = `absolute right-1 top-0 text-green-400 font-bold text-xs ${isMKW ? 'mkw-font' : ''}`;
+                            scoreBox.children[0].appendChild(addedScoreSpan); // relative z-20 container
+                        }
+                        addedScoreSpan.textContent = `+${team.addedScore}`;
+                    } else if (addedScoreSpan) {
+                        addedScoreSpan.remove();
+                    }
+
+                    // 差分表示の更新
+                    let diffDisplayHtml = '';
+                    if (myTeam) {
+                        if (teamName !== (myTeam.team || myTeam.name)) {
+                            const scoreDiff = myTeam.score - team.score;
+                            const diffText = scoreDiff === 0 ? "0" : scoreDiff > 0 ? `+${scoreDiff}` : `${scoreDiff}`;
+                            const textColor = scoreDiff > 0 ? 'text-green-400' : scoreDiff < 0 ? 'text-red-400' : 'text-white';
+                            const iconColor = scoreDiff > 0 ? 'text-green-400' : scoreDiff < 0 ? 'text-red-400' : 'text-blue-300';
+                            diffDisplayHtml = `
+                                <div class="relative ${targetBorderClass} overflow-visible">
+                                    <div class="flex items-center gap-1 px-1.5 py-0.5 text-sm font-bold ${textColor} relative z-10">
+                                        <svg class="h-3 w-3 ${iconColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                                        </svg>
+                                        <span class="${isMKW ? 'mkw-font' : ''}">${diffText}</span>
+                                    </div>
+                                </div>`;
+                        }
+                    } else if (index < scores.length - 1) {
+                        // Default ranking diff logic
+                        const scoreDiff = scores[index].score - scores[index + 1].score;
+                        const diffText = scoreDiff > 0 ? `+${scoreDiff}` : `${scoreDiff}`;
+                        diffDisplayHtml = `
+                            <div class="relative ${targetBorderClass} overflow-visible">
+                                <div class="flex items-center gap-1 px-1.5 py-0.5 text-sm font-bold text-white relative z-10">
+                                    <svg class="h-3 w-3 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
+                                    </svg>
+                                    <span class="${isMKW ? 'mkw-font' : ''}">${diffText}</span>
+                                </div>
+                            </div>`;
+                    }
+
+                    // 差分要素の更新（HTML書き換えで対応）
+                    // 差分要素はアニメーションを持たない（ボーダーもstatic）のでinnerHTML置換でOK
+                    // ただし自分自身のボーダーアニメーションがあるため、borderClassは維持する必要がある
+                    // → 差分表示自体がdivで囲まれているため、scoreContainerの2番目の子要素（存在すれば）を書き換える
+
+                    // scoreContainer.children[1] is the diff element if it exists
+                    const existingDiff = scoreContainer.children.length > 1 ? scoreContainer.children[1] : null;
+                    if (diffDisplayHtml) {
+                        if (existingDiff) {
+                            existingDiff.outerHTML = diffDisplayHtml; // Replace entirely
+                        } else {
+                            scoreContainer.insertAdjacentHTML('beforeend', diffDisplayHtml);
+                        }
+                    } else if (existingDiff) {
+                        existingDiff.remove();
+                    }
+
+                });
+
+                // 残りレース数表示の更新（DOMが維持されているので再取得不要かもしれないが、安全のため）
+                updateRemainingRaces(previousRemainingRaces, lastShowRemainingRaces);
+                return;
+            }
+
+            // --- フォールバック：通常描画（初回ロードや順位変動時） ---
 
             container.innerHTML = `
                 <div class="space-y-0 w-full max-w-md mx-auto relative ${isMKW ? 'theme-mkw' : ''}">
@@ -955,6 +1128,35 @@
             updateRemainingRaces(previousRemainingRaces, lastShowRemainingRaces);
         }
 
+        // ボーダークラスを安全に更新するヘルパー関数
+        function updateBorderClass(element, targetClass) {
+            // 現在のボーダークラスをすべて削除
+            const allBorderClasses = [
+                'static-parallelogram-border',
+                'animated-parallelogram-border',
+                'rainbow-border',
+                'mkw-parallelogram',
+                'mkw-parallelogram-active',
+                'gradient-blue-border',
+                'gradient-pink-border',
+                'gradient-orange-border',
+                'gradient-emerald-border'
+            ];
+
+            // クラスリストの変更が必要かチェック（不必要なDOM操作を避ける）
+            const currentClasses = Array.from(element.classList);
+            const hasTarget = currentClasses.includes(targetClass.split(' ')[0]); // 簡易チェック
+
+            // 含まれていない、または余計なクラスが含まれている場合は更新
+            // 厳密には "rainbow-border" があって "static..." もある変な状態を防ぐためリセット推奨
+
+            element.classList.remove(...allBorderClasses);
+
+            // 新しいクラスを追加（複数クラス対応）
+            const newClasses = targetClass.split(' ');
+            element.classList.add(...newClasses);
+        }
+
         // 順位変動アニメーション（テーマに応じた演出順序制御）
         async function animateRankingChange(newOrder, scores, container, preAnimationScores = null) {
             const currentElements = container.querySelectorAll('[data-team-row]');
@@ -966,7 +1168,7 @@
             const elementMap = new Map();
             const elementPositions = new Map();
             const isMKW = currentTheme === 'mkw';
-            
+
             // 実際の要素の高さから計算
             const firstEl = currentElements[0].getBoundingClientRect();
             const secondEl = currentElements[1] ? currentElements[1].getBoundingClientRect() : null;
@@ -1012,7 +1214,7 @@
                     const teamName = team.team || team.name || '';
                     const prevScore = preAnimationScores.get(teamName);
                     const currentScore = team.score || 0;
-                    
+
                     if (prevScore !== undefined && prevScore !== currentScore) {
                         const rowElement = elementMap.get(teamName);
                         if (rowElement) {
@@ -1042,7 +1244,7 @@
 
             // 3. 最終的なDOM構造に並べ替えて再描画
             renderScoreList(scores, container, false);
-            
+
             elementMap.forEach((element) => {
                 element.style.removeProperty('transform');
                 element.classList.remove('sliding-element');
@@ -1141,11 +1343,11 @@
         // --- 資産のプリロードと初期化の最適化 ---
         async function initialize() {
             console.log('Initializing overlay assets...');
-            
+
             // 背景画像のプリロード
             const preloadImg = new Image();
             preloadImg.src = '/overlay/background.png';
-            
+
             // フォントのロード待機
             try {
                 if (document.fonts) {
@@ -1159,7 +1361,7 @@
             // 画像のデコード待機（カクつき防止）
             try {
                 if (preloadImg.decode) await preloadImg.decode();
-            } catch (e) {}
+            } catch (e) { }
 
             console.log('Assets ready, starting score update');
             updateScores();
