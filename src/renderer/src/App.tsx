@@ -490,7 +490,7 @@ function ScoreItem({
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className={cn(
-        "hover:bg-slate-800/30 transition-colors relative group",
+        "glass-card hover:bg-slate-800/50 transition-all relative group border-b-0 rounded-none mb-1",
         isFlashing && "animate-score-flash",
         index === 0 && "rainbow-border",
         isCurrentPlayer && "current-player-glow"
@@ -2000,10 +2000,10 @@ function App(): JSX.Element {
         )}
       </AnimatePresence>
 
-      <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans flex overflow-hidden">
+      <div className="h-screen bg-transparent text-slate-200 font-sans flex overflow-hidden">
         {/* Sidebar */}
         <div className={cn(
-          "bg-[#1e293b] border-r border-slate-800 flex flex-col transition-all duration-300 ease-in-out relative group",
+          "glass-panel border-r-0 flex flex-col transition-all duration-300 ease-in-out relative group",
           isSidebarCollapsed ? "w-20" : "w-64"
         )}>
           {/* Collapse Toggle Button */}
@@ -2049,12 +2049,12 @@ function App(): JSX.Element {
             </div>
           </div>
 
-          <nav className="flex-1 px-4 space-y-2 mt-2">
+          <nav className="flex-1 px-4 space-y-2 mt-2 overflow-y-auto custom-scrollbar">
             <button
               onClick={() => handleTabChange('dashboard')}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                activeTab === 'dashboard' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
+                activeTab === 'dashboard' ? "glass-btn-primary shadow-none" : "hover:bg-white/5 text-slate-400 hover:text-slate-200",
                 isSidebarCollapsed && "justify-center px-0"
               )}
               title={isSidebarCollapsed ? t('operations.title') : undefined}
@@ -2066,7 +2066,7 @@ function App(): JSX.Element {
               onClick={() => handleTabChange('reopen')}
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                activeTab === 'reopen' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
+                activeTab === 'reopen' ? "glass-btn-primary shadow-none" : "hover:bg-white/5 text-slate-400 hover:text-slate-200",
                 isSidebarCollapsed && "justify-center px-0"
               )}
               title={isSidebarCollapsed ? "リオープンマネージャー" : undefined}
@@ -2142,7 +2142,7 @@ function App(): JSX.Element {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-[#0f172a] relative">
+        <main className="flex-1 overflow-y-auto bg-transparent relative custom-scrollbar">
           {/* Update Notification Toast */}
           <div className={cn(
             "fixed top-6 right-6 z-[100] transition-all duration-500 transform",
@@ -2300,7 +2300,7 @@ function App(): JSX.Element {
                       <button
                         onClick={() => handleFetchResults(false)}
                         disabled={status === 'loading'}
-                        className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+                        className="glass-btn-primary flex items-center gap-2"
                       >
                         {status === 'loading' ? <RefreshCw className="animate-spin" size={20} /> : <Play size={20} />}
                         {t('operations.fetchRace')}
@@ -2308,14 +2308,14 @@ function App(): JSX.Element {
                       <button
                         onClick={() => handleFetchResults(true)}
                         disabled={status === 'loading'}
-                        className="bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-purple-900/20 active:scale-95"
+                        className="glass-btn bg-purple-600/20 hover:bg-purple-600/30 border-purple-500/30 text-purple-200 hover:text-purple-100 flex items-center gap-2 shadow-[0_0_15px_rgba(147,51,234,0.1)] hover:shadow-[0_0_20px_rgba(147,51,234,0.2)]"
                       >
                         <History size={20} />
                         {t('operations.fetchOverall')}
                       </button>
                       <button
                         onClick={handleOpenOverlay}
-                        className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all shadow-lg shadow-slate-900/20 active:scale-95"
+                        className="glass-btn flex items-center gap-2"
                       >
                         <ExternalLink size={20} />
                         {t('operations.openOverlay')}
@@ -2382,7 +2382,7 @@ function App(): JSX.Element {
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Scores Table */}
-                    <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden relative">
+                    <div className="glass-panel rounded-2xl overflow-hidden relative border-none">
                       <AnimatePresence>
                         {status === 'loading' && <ScanningOverlay />}
                       </AnimatePresence>
@@ -2454,10 +2454,10 @@ function App(): JSX.Element {
                           )}
                         </div>
                       </div>
-                      <div className="p-0">
-                        <table className="w-full text-left border-collapse">
+                      <div className="p-0 px-4 pb-4">
+                        <table className="w-full text-left border-separate border-spacing-y-2">
                           <thead>
-                            <tr className="bg-slate-800/50 text-slate-400 text-xs uppercase tracking-wider">
+                            <tr className="text-slate-400 text-xs uppercase tracking-wider">
                               <th className="px-6 py-3 font-semibold">チーム名</th>
                               <th className="px-6 py-3 font-semibold text-right">スコア</th>
                               {isEditing && <th className="px-6 py-3 font-semibold text-right">操作</th>}
@@ -2501,7 +2501,7 @@ function App(): JSX.Element {
                     </div>
 
                     {/* Logs */}
-                    <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col">
+                    <div className="glass-panel rounded-2xl overflow-hidden flex flex-col border-none">
                       <div className="p-6 border-b border-slate-800 flex justify-between items-center">
                         <h3 className="font-bold text-lg flex items-center gap-2">
                           <History size={20} className="text-purple-500" />
@@ -2557,7 +2557,7 @@ function App(): JSX.Element {
                     {Array.from({ length: 10 }).map((_, i) => {
                       const slot = slots.find(s => s.slotId === i)
                       return (
-                        <div key={i} className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden flex flex-col">
+                        <div key={i} className="glass-card rounded-2xl overflow-hidden flex flex-col border-none hover:scale-[1.02]">
                           <div className="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-800/30">
                             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Slot {i + 1}</span>
                             {slot && (
@@ -2653,7 +2653,7 @@ function App(): JSX.Element {
                     <p className="text-slate-400">特定のプレイヤー名を常に特定のチームとして扱います（OCR誤認識対策）</p>
                   </header>
 
-                  <div className="bg-[#1e293b] rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+                  <div className="glass-panel rounded-2xl overflow-hidden border-none">
                     <div className="p-6 border-b border-slate-800 flex justify-between items-center">
                       <h3 className="font-bold text-lg flex items-center gap-2">
                         <Users size={20} className="text-blue-500" />
@@ -2776,7 +2776,7 @@ function App(): JSX.Element {
 
                   <div className="grid grid-cols-1 gap-8">
                     <div className="space-y-6">
-                      <div className="bg-[#1e293b] rounded-3xl p-8 border border-slate-800 shadow-xl">
+                      <div className="glass-panel rounded-3xl p-8 border-none">
                         <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                           <Layout className="text-blue-500" size={24} />
                           表示設定
@@ -2993,7 +2993,7 @@ function App(): JSX.Element {
                       </button>
                     </div>
 
-                    <section className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6">
+                    <section className="glass-panel p-8 rounded-2xl border-none space-y-6">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-bold flex items-center gap-2 text-blue-400">
                           <Monitor size={20} />
