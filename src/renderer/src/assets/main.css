@@ -5,10 +5,90 @@
 @layer base {
   body {
     @apply bg-slate-950 text-slate-50 antialiased overflow-hidden selection:bg-blue-500/30 selection:text-blue-200;
-    background-image:
-      radial-gradient(circle at 15% 50%, rgba(79, 70, 229, 0.15) 0%, transparent 45%),
-      radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.15) 0%, transparent 45%);
-    background-attachment: fixed;
+    position: relative;
+  }
+
+  /* Blob 1 */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(79, 70, 229, 0.15) 0%, transparent 50%);
+    z-index: -2;
+    animation: blob-bounce 60s infinite ease-in-out alternate;
+    translate: calc(var(--mouse-x, 0) * -120px) calc(var(--mouse-y, 0) * -120px);
+    transition: translate 0.5s ease-out;
+    will-change: transform;
+  }
+
+  /* Blob 2 */
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(14, 165, 233, 0.15) 0%, transparent 50%);
+    z-index: -1;
+    animation: blob-wander 75s infinite ease-in-out reverse;
+    translate: calc(var(--mouse-x, 0) * 180px) calc(var(--mouse-y, 0) * 180px);
+    transition: translate 0.5s ease-out;
+    will-change: transform;
+  }
+}
+
+/* Lite Mode Overrides */
+body.lite-mode::before,
+body.lite-mode::after {
+  animation: none !important;
+  translate: 0 0 !important;
+  transition: none !important;
+  opacity: 0.2;
+  /* Dim static blobs */
+}
+
+
+@keyframes blob-bounce {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+
+  33% {
+    transform: translate(30%, 30%) scale(1.2);
+  }
+
+  66% {
+    transform: translate(-15%, 45%) scale(0.85);
+  }
+
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+
+@keyframes blob-wander {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+
+  25% {
+    transform: translate(-10%, 10%) rotate(5deg);
+  }
+
+  50% {
+    transform: translate(10%, -5%) rotate(-5deg);
+  }
+
+  75% {
+    transform: translate(-5%, -10%) rotate(2deg);
+  }
+
+  100% {
+    transform: translate(0, 0) rotate(0deg);
   }
 }
 
@@ -74,6 +154,19 @@
   }
 
   /* Animations from overlay */
+  .noise-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+  }
+
   @keyframes scoreFlash {
     0% {
       border-color: rgba(59, 130, 246, 0.7);

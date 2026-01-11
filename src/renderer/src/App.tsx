@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback, JSX } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+
 import {
   Settings,
   Play,
@@ -26,585 +28,31 @@ import {
   Github,
   Twitter,
   Clipboard,
-  Check
+  Check,
+  Radio,
+  Search
 } from 'lucide-react'
-import { clsx, type ClassValue } from 'clsx'
-import { twMerge } from 'tailwind-merge'
 import { useTranslation } from 'react-i18next'
-import { motion, AnimatePresence, animate } from 'framer-motion'
 import bootLogo from './assets/boot-logo.png'
 
-function CountUp({ value, duration = 1 }: { value: number; duration?: number }) {
-  const [displayValue, setDisplayValue] = useState(value)
-  const [isCounting, setIsCounting] = useState(false)
+import { ScanningOverlay } from './components/ScanningOverlay'
+import { ColorPicker } from './components/ColorPicker'
+import { MessageModal } from './components/MessageModal'
+import { ConfirmModal } from './components/ConfirmModal'
+import { SlotModal } from './components/SlotModal'
+import { WhatsNewModal } from './components/WhatsNewModal'
+import { ScoreItem } from './components/ScoreItem'
+import { LogEntry, SlotData } from './types'
+import { cn, calculateRaceScore } from './utils'
+import { BackgroundEffect } from './components/BackgroundEffect'
 
-  useEffect(() => {
-    if (value !== displayValue) {
-      setIsCounting(true)
-      const controls = animate(displayValue, value, {
-        duration,
-        onUpdate: (latest) => setDisplayValue(Math.floor(latest)),
-        onComplete: () => setIsCounting(false)
-      })
-      return () => controls.stop()
-    }
-    return undefined
-  }, [value])
+// Removed local definitions (CountUp, ScanningOverlay, ColorPicker, MessageModal, ConfirmModal, SlotModal, WhatsNewModal, ScoreItem, cn, calculateRaceScore, LogEntry, SlotData) as they are now imported.
 
-  return <span className={cn(isCounting && "counting-text transition-all")}>{displayValue}</span>
-}
-
-function ScanningOverlay() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 1.05 }}
-      className="absolute inset-0 z-50 bg-slate-900/90 backdrop-blur-sm flex flex-col items-center justify-center rounded-2xl border-2 border-red-500/50 overflow-hidden"
-    >
-      <div className="absolute inset-0 scan-grid opacity-30" />
-      <div className="scan-line" />
-
-      <motion.div
-        animate={{
-          boxShadow: ["0 0 15px rgba(239,68,68,0.3)", "0 0 30px rgba(239,68,68,0.6)", "0 0 15px rgba(239,68,68,0.3)"]
-        }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="relative z-10 w-24 h-24 border-2 border-red-500 rounded-full flex items-center justify-center bg-red-500/10"
-      >
-        <RefreshCw className="text-red-500 animate-spin" size={40} />
-      </motion.div>
-
-      <div className="mt-6 z-10 text-center">
-        <h4 className="text-red-500 font-black tracking-[0.3em] uppercase text-xl">Analyzing</h4>
-        <div className="flex gap-1 justify-center mt-2">
-          {[0, 1, 2].map(i => (
-            <motion.div
-              key={i}
-              animate={{ opacity: [0.2, 1, 0.2] }}
-              transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
-              className="w-2 h-2 bg-red-500 rounded-full"
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="absolute bottom-4 left-6 right-6 flex justify-between text-[10px] text-red-500/50 font-mono">
-        <span>X-AXIS: DETECTING</span>
-        <span>Y-AXIS: SCANNING</span>
-        <span>GROQ_VISION_ACTIVE</span>
-      </div>
-    </motion.div>
-  )
-}
-
-function ColorPicker({ name, initialValue, onChange }: { name: string; initialValue: string; onChange?: () => void }) {
-  const [localColor, setLocalColor] = React.useState(initialValue)
-
-  React.useEffect(() => {
-    setLocalColor(initialValue)
-  }, [initialValue])
-
-  return (
-    <div className="relative group/color">
-      <input
-        type="color"
-        name={name}
-        value={localColor}
-        onChange={(e) => {
-          setLocalColor(e.target.value)
-          if (onChange) onChange()
-        }}
-        className="w-full h-14 bg-slate-900 border-2 border-slate-700 rounded-xl cursor-pointer transition-all hover:border-blue-500 p-1"
-      />
-      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
-        <span className="text-xs font-mono text-white/50 bg-black/40 px-2 py-1 rounded backdrop-blur-sm group-hover/color:text-white/80 transition-colors">
-          {localColor.toUpperCase()}
-        </span>
-      </div>
-    </div>
-  )
-}
-
-function MessageModal({
-  isOpen,
-  onClose,
-  type,
-  title,
-  message
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  type: 'info' | 'error' | 'success';
-  title: string;
-  message: string;
-}) {
-  const Icon = type === 'error' ? AlertCircle : (type === 'success' ? CheckCircle2 : Info);
-  const colorClass = type === 'error' ? 'red' : (type === 'success' ? 'emerald' : 'blue');
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className={cn(
-              "relative w-full max-w-md bg-slate-900 border-2 rounded-2xl overflow-hidden shadow-2xl",
-              type === 'error' ? "border-red-500/50 shadow-red-900/20" :
-                type === 'success' ? "border-emerald-500/50 shadow-emerald-900/20" :
-                  "border-blue-500/50 shadow-blue-900/20"
-            )}
-          >
-            <div className={cn(
-              "absolute inset-x-0 top-0 h-1",
-              type === 'error' ? "bg-red-600" : type === 'success' ? "bg-emerald-600" : "bg-blue-600"
-            )} />
-            <div className="p-8">
-              <div className="flex items-center gap-4 mb-4">
-                <div className={cn(
-                  "w-12 h-12 rounded-2xl flex items-center justify-center border-2",
-                  type === 'error' ? "bg-red-500/10 border-red-500/30 text-red-500" :
-                    type === 'success' ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-500" :
-                      "bg-blue-500/10 border-blue-500/30 text-blue-500"
-                )}>
-                  <Icon size={28} />
-                </div>
-                <div>
-                  <h3 className="text-xl font-black text-slate-100 uppercase tracking-tight">{title}</h3>
-                  <div className={cn(
-                    "h-0.5 w-12 mt-1",
-                    type === 'error' ? "bg-red-500" : type === 'success' ? "bg-emerald-500" : "bg-blue-500"
-                  )} />
-                </div>
-              </div>
-              <p className="text-slate-300 mb-8 leading-relaxed whitespace-pre-wrap">
-                {message}
-              </p>
-              <button
-                onClick={onClose}
-                className={cn(
-                  "w-full py-4 font-black rounded-xl transition-all shadow-lg active:scale-95 text-white uppercase tracking-widest text-sm",
-                  type === 'error' ? "bg-red-600 hover:bg-red-500 shadow-red-900/40" :
-                    type === 'success' ? "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/40" :
-                      "bg-blue-600 hover:bg-blue-500 shadow-blue-900/40"
-                )}
-              >
-                OK
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  );
-}
-
-function ConfirmModal({
-  isOpen,
-  onConfirm,
-  onCancel,
-  title,
-  message,
-  confirmText = "破棄して移動",
-  cancelText = "キャンセル"
-}: {
-  isOpen: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-  title: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-}) {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onCancel}
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-md bg-slate-900 border-2 border-red-500/50 rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(239,68,68,0.2)]"
-          >
-            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-right from-red-600 to-transparent animate-pulse" />
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/30">
-                  <AlertCircle className="text-red-500" size={24} />
-                </div>
-                <h3 className="text-xl font-black text-slate-100 uppercase tracking-tight">{title}</h3>
-              </div>
-              <p className="text-slate-400 mb-8 leading-relaxed">
-                {message}
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={onCancel}
-                  className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-all border border-slate-700 uppercase tracking-widest text-sm"
-                >
-                  {cancelText}
-                </button>
-                <button
-                  onClick={onConfirm}
-                  className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-500 text-white font-black rounded-xl transition-all shadow-lg shadow-red-600/20 uppercase tracking-widest text-sm"
-                >
-                  {confirmText}
-                </button>
-              </div>
-            </div>
-            <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-red-500/5 to-transparent pointer-events-none" />
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  )
-}
-
-function SlotModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  type,
-  name,
-  setName,
-  slotId
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  type: 'load' | 'add' | 'delete';
-  name: string;
-  setName: (name: string) => void;
-  slotId: number | null;
-}) {
-  const getActionInfo = () => {
-    switch (type) {
-      case 'load':
-        return {
-          title: 'スロットをロード',
-          message: 'このスロットのスコアを読み込みます。現在のスコアは失われます。',
-          confirmText: 'ロードする',
-          confirmClass: 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
-        }
-      case 'add':
-        return {
-          title: 'スコアを加算',
-          message: 'このスロットのスコアを現在のスコアに足します。',
-          confirmText: '加算する',
-          confirmClass: 'bg-purple-600 hover:bg-purple-500 shadow-purple-600/20'
-        }
-      case 'delete':
-        return {
-          title: 'スロットを削除',
-          message: 'このスロットを完全に削除します。この操作は取り消せません。',
-          confirmText: '削除する',
-          confirmClass: 'bg-red-600 hover:bg-red-500 shadow-red-600/20'
-        }
-    }
-  }
-
-  const info = getActionInfo()
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-md bg-slate-900 border-2 border-slate-800 rounded-3xl overflow-hidden shadow-2xl"
-          >
-            <div className="p-8">
-              <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-2">{info.title}</h3>
-              <p className="text-slate-400 mb-6 text-sm">{info.message}</p>
-
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={onClose}
-                  className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-all border border-slate-700 uppercase tracking-widest text-xs"
-                >
-                  キャンセル
-                </button>
-                <button
-                  onClick={onConfirm}
-                  className={cn(
-                    "flex-1 px-4 py-3 text-white font-black rounded-xl transition-all shadow-lg uppercase tracking-widest text-xs",
-                    info.confirmClass
-                  )}
-                >
-                  {info.confirmText}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  )
-}
-
-function WhatsNewModal({
-  isOpen,
-  onClose,
-  version,
-  notes
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  version: string;
-  notes: string;
-}) {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-slate-950/90 backdrop-blur-md"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 30 }}
-            className="relative w-full max-w-lg bg-slate-900 border-2 border-blue-500/50 rounded-3xl overflow-hidden shadow-[0_0_80px_rgba(59,130,246,0.3)]"
-          >
-            {/* 装飾 */}
-            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent animate-shimmer" />
-            <div className="absolute -top-24 -right-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl" />
-
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] font-black bg-blue-500 text-white px-2 py-0.5 rounded uppercase tracking-widest">Update</span>
-                    <span className="text-blue-400 font-mono text-xs">v{version}</span>
-                  </div>
-                  <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 uppercase tracking-tight">What's New</h2>
-                </div>
-                <div className="w-14 h-14 bg-blue-600/20 rounded-2xl flex items-center justify-center border border-blue-500/30">
-                  <Zap className="text-blue-500 animate-pulse" size={32} />
-                </div>
-              </div>
-
-              <div className="bg-slate-950/50 border border-slate-800 rounded-2xl p-6 mb-8 max-h-[40vh] overflow-y-auto custom-scrollbar">
-                {notes ? (
-                  <div className="prose prose-invert prose-sm">
-                    <div
-                      className="text-slate-300 leading-relaxed font-medium"
-                      dangerouslySetInnerHTML={{ __html: notes }}
-                    />
-                  </div>
-                ) : (
-                  <p className="text-slate-500 italic text-center py-4">
-                    このバージョンの詳細なリリースノートはありません。
-                  </p>
-                )}
-              </div>
-
-              <button
-                onClick={onClose}
-                className="w-full py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-black rounded-2xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] uppercase tracking-[0.2em] text-sm group flex items-center justify-center gap-2"
-              >
-                <span>Awesome!</span>
-                <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
-              </button>
-            </div>
-
-            <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-blue-500/10 to-transparent pointer-events-none" />
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-  )
-}
-
-function ScoreItem({
-  team,
-  index,
-  isEditing,
-  onRemove,
-  onChange,
-  onSetCurrentPlayer
-}: {
-  team: any;
-  index: number;
-  isEditing: boolean;
-  onRemove: (i: number) => void;
-  onChange: (i: number, field: string, value: any) => void;
-  onSetCurrentPlayer?: () => void;
-}) {
-  const [isFlashing, setIsFlashing] = useState(false)
-  const [prevScore, setPrevScore] = useState(team.score)
-  const [showAdded, setShowAdded] = useState(false)
-  const isCurrentPlayer = team.isCurrentPlayer
-
-  useEffect(() => {
-    if (team.score > prevScore) {
-      setIsFlashing(true)
-      setShowAdded(true)
-      const flashTimer = setTimeout(() => setIsFlashing(false), 1200)
-      const addedTimer = setTimeout(() => setShowAdded(false), 3000)
-      setPrevScore(team.score)
-      return () => {
-        clearTimeout(flashTimer)
-        clearTimeout(addedTimer)
-      }
-    }
-    setPrevScore(team.score)
-    return undefined
-  }, [team.score])
-
-  return (
-    <motion.tr
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-      className={cn(
-        "glass-card hover:bg-slate-800/50 transition-all relative group border-b-0 rounded-none mb-1",
-        isFlashing && "animate-score-flash",
-        index === 0 && "rainbow-border",
-        isCurrentPlayer && "current-player-glow"
-      )}
-    >
-      <td className="px-6 py-4 font-medium text-slate-200">
-        <div className="flex items-center gap-3">
-          <div className={cn(
-            "w-8 h-8 flex items-center justify-center font-black italic parallelogram-border",
-            index === 0 ? "bg-yellow-500/20 text-yellow-500 border-yellow-500/50" :
-              index === 1 ? "bg-slate-300/20 text-slate-300 border-slate-400/50" :
-                index === 2 ? "bg-amber-600/20 text-amber-600 border-amber-700/50" :
-                  "bg-slate-700/30 text-slate-500 border-slate-600/30"
-          )}>
-            {index === 0 ? <Trophy size={16} className="animate-bounce" /> : index + 1}
-          </div>
-          {isEditing ? (
-            <input
-              type="text"
-              value={team.name || team.team || ''}
-              onChange={(e) => onChange(index, 'name', e.target.value)}
-              className="bg-[#0f172a] border border-slate-700 rounded px-2 py-1 w-full focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className={cn("font-bold", isCurrentPlayer ? "text-blue-400" : "text-slate-100")}>
-                {team.name || team.team}
-              </span>
-              {isCurrentPlayer ? (
-                <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded uppercase tracking-wider">You</span>
-              ) : (
-                <button
-                  onClick={onSetCurrentPlayer}
-                  className="opacity-0 group-hover:opacity-100 text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-400 px-1.5 py-0.5 rounded transition-all"
-                >
-                  自チームに設定
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </td>
-      <td className="px-6 py-4 text-right font-bold text-blue-400 relative">
-        <div className="flex items-center justify-end gap-2">
-          {isEditing ? (
-            <input
-              type="number"
-              value={team.score}
-              onChange={(e) => onChange(index, 'score', e.target.value)}
-              className="bg-[#0f172a] border border-slate-700 rounded px-2 py-1 w-20 text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-          ) : (
-            <div className="text-2xl font-mono">
-              <CountUp value={team.score} />
-            </div>
-          )}
-
-          <AnimatePresence>
-            {showAdded && team.addedScore > 0 && (
-              <motion.span
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: -25 }}
-                exit={{ opacity: 0 }}
-                className="absolute right-6 top-0 text-emerald-400 text-sm font-black pointer-events-none drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] animate-added-score"
-              >
-                +{team.addedScore}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </div>
-      </td>
-      {isEditing && (
-        <td className="px-6 py-4 text-right">
-          <button
-            onClick={() => onRemove(index)}
-            className="text-red-500 hover:text-red-400"
-          >
-            <Trash2 size={16} />
-          </button>
-        </td>
-      )}
-    </motion.tr>
-  )
-}
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
-
-const calculateRaceScore = (rank: number | undefined): number => {
-  if (!rank) return 0
-  const scores = [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
-  return scores[rank - 1] || 0
-}
-
-interface LogEntry {
-  message: string
-  timestamp: string
-  type: 'info' | 'success' | 'error'
-}
-
-interface SlotData {
-  slotId: number
-  name: string
-  timestamp: string
-  scores: any[]
-  remainingRaces: number
-}
 
 function App(): JSX.Element {
   const { t, i18n } = useTranslation()
-
   const [config, setConfig] = useState<any>(null)
-  const isConfigInvalid = !config?.obsIp || !config?.obsPort || !config?.obsSourceName || !config?.groqApiKey
+  const [isConfigInvalid, setIsConfigInvalid] = useState(false)
 
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [activeTab, setActiveTab] = useState<'dashboard' | 'reopen' | 'mappings' | 'overlay' | 'settings' | 'about'>('dashboard')
@@ -637,6 +85,29 @@ function App(): JSX.Element {
   const [obsStatus, setObsStatus] = useState(false)
   const [obsInputs, setObsInputs] = useState<any[]>([])
   const [isObsConnecting, setIsObsConnecting] = useState(false)
+
+  // Settings Sub-tabs State
+  const [settingsTab, setSettingsTab] = useState<'system' | 'obs' | 'ai'>('system')
+  const [liteMode, setLiteMode] = useState(() => {
+    return localStorage.getItem('liteMode') === 'true'
+  })
+  const [bgStyle, setBgStyle] = useState<'planetarium' | 'nebula'>(() => {
+    return (localStorage.getItem('bgStyle') as 'planetarium' | 'nebula') || 'planetarium'
+  })
+
+  // Persist local settings
+  useEffect(() => {
+    localStorage.setItem('liteMode', String(liteMode))
+    if (liteMode) {
+      document.body.classList.add('lite-mode')
+    } else {
+      document.body.classList.remove('lite-mode')
+    }
+  }, [liteMode])
+
+  useEffect(() => {
+    localStorage.setItem('bgStyle', bgStyle)
+  }, [bgStyle])
 
   const [guiModal, setGuiModal] = useState<{
     type: 'info' | 'error' | 'success',
@@ -870,6 +341,8 @@ function App(): JSX.Element {
       }
 
       setConfig(finalConfig)
+      setIsConfigInvalid(!finalConfig?.obsIp || !finalConfig?.obsPort || !finalConfig?.obsSourceName || !finalConfig?.groqApiKey)
+
 
       // Auto-connect to OBS on startup if configured
       if (finalConfig.obsIp && finalConfig.obsPort) {
@@ -1366,12 +839,12 @@ function App(): JSX.Element {
       return form.querySelector(`[name="${name}"]`) !== null
     }
 
-    if (hasField('obsIp')) newConfig.obsIp = formData.get('obsIp') as string
-    if (hasField('obsPort')) {
-      const port = parseInt(formData.get('obsPort') as string)
+    if (hasField('obsWsIp')) newConfig.obsIp = formData.get('obsWsIp') as string
+    if (hasField('obsWsPort')) {
+      const port = parseInt(formData.get('obsWsPort') as string)
       if (!isNaN(port)) newConfig.obsPort = port
     }
-    if (hasField('obsPassword')) newConfig.obsPassword = formData.get('obsPassword') as string
+    if (hasField('obsWsPassword')) newConfig.obsPassword = formData.get('obsWsPassword') as string
     if (hasField('obsSourceName')) newConfig.obsSourceName = formData.get('obsSourceName') as string
     if (hasField('aiProvider')) newConfig.aiProvider = formData.get('aiProvider') as any
     if (hasField('openaiApiKey')) newConfig.openaiApiKey = formData.get('openaiApiKey') as string
@@ -1426,6 +899,7 @@ function App(): JSX.Element {
       if (result.success) {
         setConfig(newConfig)
         setIsDirty(false)
+        setIsConfigInvalid(!newConfig?.obsIp || !newConfig?.obsPort || !newConfig?.obsSourceName || !newConfig?.groqApiKey)
         addLog(t('messages.configSaved'), 'success')
       } else {
         addLog(t('messages.configSaveError'), 'error')
@@ -2049,82 +1523,43 @@ function App(): JSX.Element {
             </div>
           </div>
 
-          <nav className="flex-1 px-4 space-y-2 mt-2 overflow-y-auto custom-scrollbar">
-            <button
-              onClick={() => handleTabChange('dashboard')}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                activeTab === 'dashboard' ? "glass-btn-primary shadow-none" : "hover:bg-white/5 text-slate-400 hover:text-slate-200",
-                isSidebarCollapsed && "justify-center px-0"
-              )}
-              title={isSidebarCollapsed ? t('operations.title') : undefined}
-            >
-              <BarChart3 size={20} />
-              {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">{t('operations.title')}</span>}
-            </button>
-            <button
-              onClick={() => handleTabChange('reopen')}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                activeTab === 'reopen' ? "glass-btn-primary shadow-none" : "hover:bg-white/5 text-slate-400 hover:text-slate-200",
-                isSidebarCollapsed && "justify-center px-0"
-              )}
-              title={isSidebarCollapsed ? "リオープンマネージャー" : undefined}
-            >
-              <History size={20} />
-              {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">リオープンマネージャー</span>}
-            </button>
-            <button
-              onClick={() => handleTabChange('mappings')}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                activeTab === 'mappings' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
-                isSidebarCollapsed && "justify-center px-0"
-              )}
-              title={isSidebarCollapsed ? "プレイヤーマッピング" : undefined}
-            >
-              <Users size={20} />
-              {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">プレイヤーマッピング</span>}
-            </button>
-            <button
-              onClick={() => handleTabChange('overlay')}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                activeTab === 'overlay' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
-                isSidebarCollapsed && "justify-center px-0"
-              )}
-              title={isSidebarCollapsed ? "オーバーレイ設定" : undefined}
-            >
-              <Layout size={20} />
-              {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">オーバーレイ設定</span>}
-            </button>
-            <button
-              onClick={() => handleTabChange('settings')}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                activeTab === 'settings' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
-                isSidebarCollapsed && "justify-center px-0"
-              )}
-              title={isSidebarCollapsed ? t('config.title') : undefined}
-            >
-              <Settings size={20} />
-              {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">{t('config.title')}</span>}
-              {isConfigInvalid && (
-                <AlertCircle size={14} className="text-amber-500 absolute top-2 right-2 animate-pulse" />
-              )}
-            </button>
-            <button
-              onClick={() => handleTabChange('about')}
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-                activeTab === 'about' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/40" : "hover:bg-slate-800 text-slate-400 hover:text-slate-200",
-                isSidebarCollapsed && "justify-center px-0"
-              )}
-              title={isSidebarCollapsed ? "About" : undefined}
-            >
-              <Info size={20} />
-              {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap">About</span>}
-            </button>
+          <nav className="flex-1 px-4 space-y-2 overflow-y-auto custom-scrollbar">
+            {[
+              { id: 'dashboard', icon: BarChart3, label: t('operations.title') },
+              { id: 'reopen', icon: History, label: 'リオープンマネージャー' },
+              { id: 'mappings', icon: Users, label: 'プレイヤーマッピング' },
+              { id: 'overlay', icon: Layout, label: 'オーバーレイ設定' },
+              { id: 'settings', icon: Settings, label: t('config.title') },
+              { id: 'about', icon: Info, label: 'About' }
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id as any)}
+                className={cn(
+                  "relative w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 z-10",
+                  activeTab === tab.id ? "text-white" : "text-slate-400 hover:text-slate-200",
+                  isSidebarCollapsed && "justify-center px-0"
+                )}
+                title={isSidebarCollapsed ? tab.label : undefined}
+              >
+                {activeTab === tab.id && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-0 bg-blue-600 rounded-xl shadow-lg shadow-blue-900/40 -z-10"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+                <tab.icon size={20} className={cn("relative z-10", activeTab === tab.id && "text-white")} />
+                {!isSidebarCollapsed && (
+                  <span className={cn("font-medium whitespace-nowrap relative z-10", activeTab === tab.id && "text-white")}>
+                    {tab.label}
+                  </span>
+                )}
+                {tab.id === 'settings' && isConfigInvalid && (
+                  <AlertCircle size={14} className="text-amber-500 absolute top-2 right-2 animate-pulse z-20" />
+                )}
+              </button>
+            ))}
           </nav>
 
           <div className={cn("p-4 mt-auto", isSidebarCollapsed && "px-2")}>
@@ -2910,288 +2345,317 @@ function App(): JSX.Element {
               {activeTab === 'settings' && (
                 <motion.div
                   key="settings"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.2 }}
-                  className="space-y-8"
+                  className="space-y-6"
                 >
-                  <header>
-                    <h2 className="text-3xl font-bold text-white mb-2">{t('config.title')}</h2>
-                    <p className="text-slate-400">アプリケーションの動作と外観を設定します</p>
-                  </header>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                        <Settings className="text-slate-400" />
+                        {t('config.title')}
+                      </h2>
+                      <p className="text-slate-400 text-sm mt-1">アプリケーションの動作設定を行います</p>
+                    </div>
+                  </div>
 
-                  {updateInfo && (
-                    <div className="bg-blue-600/10 border border-blue-500/20 rounded-2xl p-6 flex flex-col gap-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-blue-600 rounded-xl">
-                            <Download className="text-white" size={24} />
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-white">新しいバージョンが利用可能です</h3>
-                            <p className="text-blue-400 text-sm">v{appVersion} → v{updateInfo.latestVersion}</p>
-                          </div>
-                        </div>
-                        {isUpdateDownloaded ? (
-                          <button
-                            onClick={handleQuitAndInstall}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
-                          >
-                            再起動して適用
-                          </button>
-                        ) : isDownloadingUpdate ? (
-                          <div className="text-right">
-                            <p className="text-xs text-blue-400 mb-1 font-mono">{Math.round(updateProgress)}%</p>
-                            <div className="w-32 h-2 bg-slate-800 rounded-full overflow-hidden">
-                              <div
-                                className="h-full bg-blue-500 transition-all duration-300"
-                                style={{ width: `${updateProgress}%` }}
-                              />
+                  {/* Sub-tabs Navigation */}
+                  <div className="flex gap-2 mb-6 bg-slate-900/50 p-1 rounded-xl w-fit">
+                    {(['system', 'obs', 'ai'] as const).map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setSettingsTab(tab)}
+                        className={cn(
+                          "px-6 py-2 rounded-lg text-sm font-bold transition-all",
+                          settingsTab === tab
+                            ? "bg-blue-600 text-white shadow-lg"
+                            : "text-slate-400 hover:text-white hover:bg-slate-800"
+                        )}
+                      >
+                        {tab === 'system' && "システム (System)"}
+                        {tab === 'obs' && "OBS設定"}
+                        {tab === 'ai' && "AI解析 (Groq)"}
+                      </button>
+                    ))}
+                  </div>
+
+                  <form onSubmit={handleSaveConfig} className="space-y-8">
+
+                    {/* SYSTEM SETTINGS */}
+                    {settingsTab === 'system' && (
+                      <motion.section
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6"
+                      >
+                        <h3 className="text-lg font-bold flex items-center gap-2 text-purple-400">
+                          <Monitor size={20} />
+                          表示・パフォーマンス (Appearance)
+                        </h3>
+
+                        <div className="space-y-6">
+                          {/* Background Style */}
+                          <div className="space-y-3">
+                            <label className="text-sm font-medium text-slate-400">背景スタイル (Background Style)</label>
+                            <div className="grid grid-cols-2 gap-4">
+                              <button
+                                type="button"
+                                onClick={() => setBgStyle('planetarium')}
+                                className={cn(
+                                  "p-4 rounded-xl border transition-all flex flex-col items-center gap-2",
+                                  bgStyle === 'planetarium'
+                                    ? "bg-blue-900/40 border-blue-500 text-blue-200"
+                                    : "bg-slate-900/40 border-slate-700 text-slate-400 hover:bg-slate-800"
+                                )}
+                              >
+                                <div className="w-full h-24 rounded-lg bg-gradient-to-br from-indigo-900 to-purple-900 overflow-hidden relative mb-2">
+                                  <div className="absolute inset-0 opacity-50 flex items-center justify-center text-xs text-white/50">Planetarium Preview</div>
+                                </div>
+                                <span className="font-bold">プラネタリウム</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setBgStyle('nebula')}
+                                className={cn(
+                                  "p-4 rounded-xl border transition-all flex flex-col items-center gap-2",
+                                  bgStyle === 'nebula'
+                                    ? "bg-purple-900/40 border-purple-500 text-purple-200"
+                                    : "bg-slate-900/40 border-slate-700 text-slate-400 hover:bg-slate-800"
+                                )}
+                              >
+                                <div className="w-full h-24 rounded-lg bg-black overflow-hidden relative mb-2 border border-purple-800">
+                                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-900/40 via-[#020617] to-[#020617]"></div>
+                                  <div className="absolute top-2 right-4 w-1 h-1 bg-white rounded-full shadow-[0_0_4px_white] animate-pulse"></div>
+                                  <div className="absolute bottom-4 left-6 w-0.5 h-0.5 bg-white rounded-full opacity-50"></div>
+                                  <div className="absolute inset-0 flex items-center justify-center text-xs text-white/50 z-10 font-bold">Deep Space</div>
+                                </div>
+                                <span className="font-bold">Nebula</span>
+                              </button>
                             </div>
                           </div>
-                        ) : updateInfo.isAutoUpdater ? (
-                          <button
-                            onClick={handleStartDownloadUpdate}
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
-                          >
-                            アップデートを開始
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => window.electron.ipcRenderer.invoke('open-external', updateInfo.url)}
-                            className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-xl font-bold transition-all"
-                          >
-                            ブラウザでダウンロード
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
 
-                  <form
-                    onSubmit={handleSaveConfig}
-                    onChange={() => setIsDirty(true)}
-                    className="space-y-8 pb-12 relative"
-                  >
-                    <div className="sticky top-0 z-10 flex justify-between items-center bg-[#0f172a]/80 backdrop-blur-md p-4 mb-4 rounded-xl border border-slate-800 shadow-2xl">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "w-3 h-3 rounded-full animate-pulse",
-                          isConfigInvalid ? "bg-amber-500" : "bg-emerald-500"
-                        )} />
-                        <span className="text-sm font-medium text-slate-300">
-                          {isConfigInvalid ? "未完了の設定があります" : "設定はすべて完了しています"}
-                        </span>
-                      </div>
-                      <button
-                        type="submit"
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-2.5 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/40 active:scale-95 flex items-center gap-2"
+                          {/* Lite Mode Toggle */}
+                          <div className="flex items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-slate-700/50">
+                            <div className="space-y-1">
+                              <div className="font-bold text-slate-200 flex items-center gap-2">
+                                <Zap size={16} className="text-yellow-400" />
+                                ライトモード (Lite Mode)
+                              </div>
+                              <p className="text-xs text-slate-400">
+                                アニメーションを停止し、低スペックPCでの動作を軽量化します。
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setLiteMode(!liteMode)}
+                              className={cn(
+                                "relative inline-flex h-7 w-14 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2",
+                                liteMode ? "bg-blue-600" : "bg-slate-700"
+                              )}
+                            >
+                              <span className="sr-only">Use setting</span>
+                              <span
+                                aria-hidden="true"
+                                className={cn(
+                                  "pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                                  liteMode ? "translate-x-7" : "translate-x-0"
+                                )}
+                              />
+                            </button>
+                          </div>
+                        </div>
+                      </motion.section>
+                    )}
+
+                    {/* OBS SETTINGS */}
+                    {settingsTab === 'obs' && (
+                      <motion.section
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6"
                       >
-                        <Save size={18} />
-                        {t('config.saveButton')}
-                      </button>
-                    </div>
-
-                    <section className="glass-panel p-8 rounded-2xl border-none space-y-6">
-                      <div className="flex items-center justify-between">
                         <h3 className="text-lg font-bold flex items-center gap-2 text-blue-400">
-                          <Monitor size={20} />
+                          <Radio size={20} />
                           OBS WebSocket 設定
                         </h3>
-                        <div className="flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={autoDetectObsSettings}
-                            className="text-xs px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-800 transition-all flex items-center gap-2"
-                          >
-                            <Monitor size={12} />
-                            {t('config.obsAutoDetect')}
-                          </button>
-                          <div className={cn(
-                            "w-2.5 h-2.5 rounded-full shadow-[0_0_8px]",
-                            obsStatus ? "bg-emerald-500 shadow-emerald-500/50" : "bg-red-500 shadow-red-500/50"
-                          )} />
-                          <span className={cn(
-                            "text-xs font-bold uppercase tracking-wider",
-                            obsStatus ? "text-emerald-500" : "text-red-500"
-                          )}>
-                            {obsStatus ? t('config.obsStatusConnected') : t('config.obsStatusDisconnected')}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={toggleObsConnection}
-                            disabled={isObsConnecting}
-                            className={cn(
-                              "text-xs px-3 py-1.5 rounded-lg border transition-all active:scale-95 flex items-center gap-2",
-                              obsStatus
-                                ? "bg-red-500/10 border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white"
-                                : "bg-emerald-500/10 border-emerald-500/50 text-emerald-500 hover:bg-emerald-500 hover:text-white"
-                            )}
-                          >
-                            {isObsConnecting ? <RefreshCw size={12} className="animate-spin" /> : null}
-                            {obsStatus ? t('config.obsDisconnect') : t('config.obsConnect')}
-                          </button>
-                        </div>
-                      </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-400">{t('config.obsIp')}</label>
-                          <input
-                            name="obsIp"
-                            type="text"
-                            defaultValue={config?.obsIp}
-                            className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-400">{t('config.obsPort')}</label>
-                          <input
-                            name="obsPort"
-                            type="number"
-                            defaultValue={config?.obsPort}
-                            className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-400">{t('config.obsPassword')}</label>
-                        <input
-                          name="obsPassword"
-                          type="password"
-                          defaultValue={config?.obsPassword}
-                          placeholder={t('config.obsPasswordPlaceholder')}
-                          className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                        />
-                      </div>
-                      <div className="space-y-2 relative">
-                        <label className="text-sm font-medium text-slate-400">{t('config.obsSourceName')}</label>
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-400">{t('config.obsIp')}</label>
                             <input
-                              name="obsSourceName"
-                              list="obs-source-list"
+                              name="obsWsIp"
                               type="text"
-                              defaultValue={config?.obsSourceName}
-                              placeholder={t('config.obsSourceNamePlaceholder')}
-                              className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                              defaultValue={config?.obsIp || '127.0.0.1'}
+                              placeholder="127.0.0.1"
+                              className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
                             />
-                            <datalist id="obs-source-list">
-                              {obsInputs && obsInputs.map((input: any) => (
-                                <option key={input.inputName} value={input.inputName}>
-                                  {input.inputKind}
-                                </option>
-                              ))}
-                            </datalist>
                           </div>
-                          {!obsStatus && (
-                            <p className="absolute -bottom-5 right-0 text-[10px] text-slate-500">
-                              {t('config.obsSourceDropdownHint')}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                        <button
-                          type="button"
-                          onClick={() => window.electron.ipcRenderer.invoke('refresh-obs-browser-sources')}
-                          className="flex items-center justify-center gap-2 bg-slate-800/50 hover:bg-slate-800 text-slate-300 py-3 rounded-xl font-medium transition-all border border-slate-700 active:scale-[0.98]"
-                        >
-                          <RefreshCw size={16} />
-                          ソースをリフレッシュ
-                        </button>
-                        <button
-                          type="button"
-                          onClick={autoSetupObsOverlay}
-                          className="flex items-center justify-center gap-2 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white py-3 rounded-xl font-bold transition-all border border-blue-500/30 active:scale-[0.98] group"
-                        >
-                          <ExternalLink size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                          {t('config.obsAutoSetup')}
-                        </button>
-                      </div>
-                    </section>
-
-                    <section className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6">
-                      <h3 className="text-lg font-bold flex items-center gap-2 text-green-400">
-                        <Zap size={20} />
-                        AI 解析設定 (Groq)
-                      </h3>
-
-                      <input type="hidden" name="aiProvider" value="groq" />
-
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-sm font-medium text-slate-400">{t('config.groqApiKey')}</label>
-                          <input
-                            name="groqApiKey"
-                            type="password"
-                            defaultValue={config?.groqApiKey}
-                            placeholder={t('config.groqApiKeyPlaceholder')}
-                            className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all"
-                          />
-                          <p className="text-xs text-slate-500 italic">
-                            ※ 現在は爆速かつ無料で利用可能な Groq (Llama 4 Scout) のみを使用します。
-                          </p>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-400">{t('config.obsPort')}</label>
+                            <input
+                              name="obsWsPort"
+                              type="text"
+                              defaultValue={config?.obsPort || '4455'}
+                              placeholder="4455"
+                              className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
+                            />
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <label className="text-sm font-medium text-slate-400">{t('config.obsPassword')}</label>
+                            <input
+                              name="obsWsPassword"
+                              type="password"
+                              defaultValue={config?.obsPassword}
+                              placeholder="OBS WebSocket Password"
+                              className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-mono"
+                            />
+                          </div>
                         </div>
 
-                        <div className="border border-slate-700 rounded-xl overflow-hidden">
+                        <div className="pt-4 border-t border-slate-700/50">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-400 flex items-center gap-2">
+                              OBSソース名 (Browser Source Name)
+                              <span className="text-[10px] text-yellow-500 border border-yellow-500/30 px-1 rounded bg-yellow-500/10">重要</span>
+                            </label>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Search size={16} className="text-slate-500" />
+                              </div>
+                              <input
+                                name="obsSourceName"
+                                list="obs-source-list"
+                                type="text"
+                                defaultValue={config?.obsSourceName}
+                                placeholder={t('config.obsSourceNamePlaceholder')}
+                                className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 pl-10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                              />
+                              <datalist id="obs-source-list">
+                                {obsInputs && obsInputs.map((input: any) => (
+                                  <option key={input.inputName} value={input.inputName}>
+                                    {input.inputKind}
+                                  </option>
+                                ))}
+                              </datalist>
+                            </div>
+                            {!obsStatus && (
+                              <p className="text-xs text-slate-500 mt-1">
+                                {t('config.obsSourceDropdownHint')}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                           <button
                             type="button"
-                            onClick={() => setShowGroqInstructions(!showGroqInstructions)}
-                            className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 transition-colors text-sm font-medium text-slate-300"
+                            onClick={() => window.electron.ipcRenderer.invoke('refresh-obs-browser-sources')}
+                            className="flex items-center justify-center gap-2 bg-slate-800/50 hover:bg-slate-800 text-slate-300 py-3 rounded-xl font-medium transition-all border border-slate-700 active:scale-[0.98]"
                           >
-                            <span>Groq APIキーを取得する方法</span>
-                            <ChevronRight
-                              size={16}
-                              className={cn("transition-transform duration-200", showGroqInstructions && "rotate-90")}
-                            />
+                            <RefreshCw size={16} />
+                            ソースをリフレッシュ
                           </button>
-                          <AnimatePresence>
-                            {showGroqInstructions && (
-                              <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: "auto", opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
-                                className="overflow-hidden"
-                              >
-                                <div className="p-4 bg-slate-900 border-t border-slate-800 space-y-3 text-sm text-slate-400">
-                                  <p className="flex gap-2">
-                                    <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">1</span>
-                                    <span className="flex-1">
-                                      <a
-                                        href="https://console.groq.com/keys"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-blue-400 hover:underline inline-flex items-center gap-1"
-                                      >
-                                        Groq Cloud Console <ExternalLink size={12} />
-                                      </a>
-                                      にアクセスします。
-                                    </span>
-                                  </p>
-                                  <p className="flex gap-2">
-                                    <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">2</span>
-                                    <span className="flex-1">Googleアカウント、またはメールアドレスでサインアップ/ログインします。</span>
-                                  </p>
-                                  <p className="flex gap-2">
-                                    <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">3</span>
-                                    <span className="flex-1">「Create API Key」ボタンを押します。</span>
-                                  </p>
-                                  <p className="flex gap-2">
-                                    <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">4</span>
-                                    <span className="flex-1">適当な名前（例: MK8DX）を付けて作成し、表示されたコード（gsk-...）をコピーして上の入力欄に貼り付けます。</span>
-                                  </p>
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                          <button
+                            type="button"
+                            onClick={autoSetupObsOverlay}
+                            className="flex items-center justify-center gap-2 bg-blue-600/10 hover:bg-blue-600 text-blue-400 hover:text-white py-3 rounded-xl font-bold transition-all border border-blue-500/30 active:scale-[0.98] group"
+                          >
+                            <ExternalLink size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                            {t('config.obsAutoSetup')}
+                          </button>
                         </div>
-                      </div>
-                    </section>
+                      </motion.section>
+                    )}
 
-                    <div className="flex justify-end pt-4">
+                    {/* AI SETTINGS */}
+                    {settingsTab === 'ai' && (
+                      <motion.section
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-[#1e293b] p-8 rounded-2xl border border-slate-800 shadow-xl space-y-6"
+                      >
+                        <h3 className="text-lg font-bold flex items-center gap-2 text-green-400">
+                          <Zap size={20} />
+                          AI 解析設定 (Groq)
+                        </h3>
+
+                        <input type="hidden" name="aiProvider" value="groq" />
+
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-slate-400">{t('config.groqApiKey')}</label>
+                            <input
+                              name="groqApiKey"
+                              type="password"
+                              defaultValue={config?.groqApiKey}
+                              placeholder={t('config.groqApiKeyPlaceholder')}
+                              className="w-full bg-[#0f172a] border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all font-mono"
+                            />
+                            <p className="text-xs text-slate-500 italic">
+                              ※ 現在は爆速かつ無料で利用可能な Groq (Llama 4 Scout) のみを使用します。
+                            </p>
+                          </div>
+
+                          <div className="border border-slate-700 rounded-xl overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => setShowGroqInstructions(!showGroqInstructions)}
+                              className="w-full flex items-center justify-between p-4 bg-slate-800/50 hover:bg-slate-800 transition-colors text-sm font-medium text-slate-300"
+                            >
+                              <span>Groq APIキーを取得する方法</span>
+                              <ChevronRight
+                                size={16}
+                                className={cn("transition-transform duration-200", showGroqInstructions && "rotate-90")}
+                              />
+                            </button>
+                            <AnimatePresence>
+                              {showGroqInstructions && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: "auto", opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="p-4 bg-slate-900 border-t border-slate-800 space-y-3 text-sm text-slate-400">
+                                    <p className="flex gap-2">
+                                      <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">1</span>
+                                      <span className="flex-1">
+                                        <a
+                                          href="https://console.groq.com/keys"
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-blue-400 hover:underline inline-flex items-center gap-1"
+                                        >
+                                          Groq Cloud Console <ExternalLink size={12} />
+                                        </a>
+                                        にアクセスします。
+                                      </span>
+                                    </p>
+                                    <p className="flex gap-2">
+                                      <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">2</span>
+                                      <span className="flex-1">Googleアカウント、またはメールアドレスでサインアップ/ログインします。</span>
+                                    </p>
+                                    <p className="flex gap-2">
+                                      <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">3</span>
+                                      <span className="flex-1">「Create API Key」ボタンを押します。</span>
+                                    </p>
+                                    <p className="flex gap-2">
+                                      <span className="flex-shrink-0 w-5 h-5 bg-slate-800 rounded-full flex items-center justify-center text-xs text-white">4</span>
+                                      <span className="flex-1">適当な名前（例: MK8DX）を付けて作成し、表示されたコード（gsk-...）をコピーして上の入力欄に貼り付けます。</span>
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        </div>
+                      </motion.section>
+                    )}
+
+                    <div className="flex justify-end pt-4 border-t border-slate-700/30">
                       <button
                         type="submit"
                         className="bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/40 active:scale-95 flex items-center gap-2"
@@ -3309,6 +2773,9 @@ function App(): JSX.Element {
           confirmText="リセットする"
         />
       </div>
+      <div className="fixed inset-0 -z-50 bg-[#020617]" />
+      <div className="noise-overlay" />
+      <BackgroundEffect liteMode={liteMode} style={bgStyle} />
     </>
   )
 }
