@@ -30,7 +30,9 @@ import {
   Clipboard,
   Check,
   Radio,
-  Search
+  Search,
+  CheckCircle,
+  Copy
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import bootLogo from './assets/boot-logo.png'
@@ -130,11 +132,79 @@ function App(): JSX.Element {
   // Overlay preview states
   const [selectedOverlayTheme, setSelectedOverlayTheme] = useState<string>('default')
   const [selectedOwnTeamStyle, setSelectedOwnTeamStyle] = useState<string>('rainbow')
+  const [overlayTab, setOverlayTab] = useState<'general' | 'theme' | 'animation'>('general')
 
+  // Persist manually selected current team
   // Persist manually selected current team
   // Persist manually selected current team
   const [manualCurrentTeam, setManualCurrentTeam] = useState<string | null>(null)
   const [isCopied, setIsCopied] = useState(false)
+
+  // Overlay Preview Refs and state
+  const previewIframeRef = React.useRef<HTMLIFrameElement>(null)
+  const [previewUrl, setPreviewUrl] = useState('')
+
+  useEffect(() => {
+    setPreviewUrl(`http://localhost:${serverPort}/?overlay=true&preview=true`)
+  }, [serverPort])
+
+  // Sync config changes to preview in real-time
+  const sendPreviewData = useCallback(() => {
+    if (previewIframeRef.current && config) {
+      previewIframeRef.current.contentWindow?.postMessage({
+        type: 'updateConfig',
+        config: config
+      }, '*')
+    }
+  }, [config])
+
+  useEffect(() => {
+    sendPreviewData()
+
+    // Listen for iframe ready signal
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'overlayReady') {
+        console.log('Preview iframe reported ready, initiating sandbox...')
+        sendPreviewData()
+
+        // Send localized 4-team placeholder for preview (Sandboxed from real scores)
+        if (previewIframeRef.current) {
+          const placeholderScores = Array.from({ length: 4 }, (_, i) => ({
+            name: `Team ${String.fromCharCode(65 + i)}`,
+            score: 0,
+            addedScore: 0,
+            isCurrentPlayer: i === 0,
+            rank: i + 1
+          }))
+          previewIframeRef.current.contentWindow?.postMessage({
+            type: 'updateScores',
+            scores: placeholderScores
+          }, '*')
+        }
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [sendPreviewData])
+
+  const handlePlayDemo = () => {
+    if (previewIframeRef.current) {
+      // Simulate random race results
+      const demoScores = Array.from({ length: 4 }, (_, i) => ({
+        name: `Team ${String.fromCharCode(65 + i)}`,
+        score: Math.floor(Math.random() * 100),
+        addedScore: Math.floor(Math.random() * 15),
+        isCurrentPlayer: i === 0,
+        rank: i + 1
+      })).sort((a, b) => b.score - a.score)
+
+      previewIframeRef.current.contentWindow?.postMessage({
+        type: 'updateScores',
+        scores: demoScores
+      }, '*')
+    }
+  }
 
 
   const handleCloseWhatsNew = async () => {
@@ -321,6 +391,16 @@ function App(): JSX.Element {
           ownTeamStyle: 'rainbow',
           ownTeamColor: '#fbbf24',
           ownTeamGradient: 'blue'
+        },
+        groqApiKey: '',
+        showRemainingRaces: true,
+        scoreSettings: {
+          keepScoreOnRestart: true
+        },
+        overlayAnimations: {
+          speed: 1.0,
+          rankAnim: true,
+          flash: true
         }
       }
 
@@ -882,6 +962,26 @@ function App(): JSX.Element {
     }
     if (hasField('ownTeamGradient')) {
       newConfig.overlayColors.ownTeamGradient = formData.get('ownTeamGradient') as string
+    }
+
+    // アニメーション設定の更新
+    if (!newConfig.overlayAnimations) {
+      newConfig.overlayAnimations = {
+        speed: 1.0,
+        rankAnim: true,
+        flash: true
+      }
+    }
+
+    if (hasField('animationSpeed')) {
+      newConfig.overlayAnimations.speed = parseFloat(formData.get('animationSpeed') as string)
+    }
+    // トグル系はhidden inputで常に送信するか、checkboxの状態を見る
+    if (hasField('rankAnim')) {
+      newConfig.overlayAnimations.rankAnim = formData.get('rankAnim') === 'on'
+    }
+    if (hasField('flashOnUpdate')) {
+      newConfig.overlayAnimations.flash = formData.get('flashOnUpdate') === 'on'
     }
 
     // スコア設定の更新
@@ -2209,134 +2309,292 @@ function App(): JSX.Element {
                     <p className="text-slate-400">配信画面に表示するスコアボードの外観をカスタマイズします</p>
                   </header>
 
-                  <div className="grid grid-cols-1 gap-8">
-                    <div className="space-y-6">
-                      <div className="glass-panel rounded-3xl p-8 border-none">
-                        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                          <Layout className="text-blue-500" size={24} />
-                          表示設定
-                        </h3>
+                  {/* Sub-tabs Navigation */}
+                  <div className="flex gap-2 mb-6 bg-slate-900/50 p-1 rounded-xl w-fit">
+                    {(['general', 'theme', 'animation'] as const).map((tab) => (
+                      <button
+                        key={tab}
+                        onClick={() => setOverlayTab(tab)}
+                        className={cn(
+                          "px-6 py-2 rounded-lg text-sm font-bold transition-all",
+                          overlayTab === tab
+                            ? "bg-blue-600 text-white shadow-lg"
+                            : "text-slate-400 hover:text-white hover:bg-slate-800"
+                        )}
+                      >
+                        {tab === 'general' && "一般 (General)"}
+                        {tab === 'theme' && "テーマ (Theme)"}
+                        {tab === 'animation' && "アニメーション"}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-[600px]">
+                    {/* Left Column: Settings */}
+                    <div className="space-y-6 overflow-y-auto pr-2 custom-scrollbar">
+                      <div className="glass-panel rounded-3xl p-8 border-none bg-slate-800/50">
+
                         <form
                           onSubmit={handleSaveConfig}
                           onChange={() => setIsDirty(true)}
                           className="space-y-6"
                         >
-                          <Toggle
-                            name="keepScoreOnRestart"
-                            defaultChecked={config?.scoreSettings?.keepScoreOnRestart ?? true}
-                            label="アプリ再起動時にスコアを保持する"
-                            help="無効にすると、アプリを閉じて再度開いた時にスコアがリセットされます"
-                          />
-                          <Toggle
-                            name="showRemainingRaces"
-                            defaultChecked={config?.showRemainingRaces ?? true}
-                            label="残りレース数を表示"
-                            help="1位のチームの横に残りレース数を表示します"
-                          />
-
-                          <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
-                            <label className="text-sm font-medium text-slate-200">オーバーレイテーマ</label>
-                            <select
-                              name="overlayTheme"
-                              defaultValue={config?.overlayTheme || 'default'}
-                              onChange={(e) => {
-                                setSelectedOverlayTheme(e.target.value)
-                                setIsDirty(true)
-                              }}
-                              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                          {/* GENERAL TAB */}
+                          {overlayTab === 'general' && (
+                            <motion.div
+                              initial={{ opacity: 0, x: 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              className="space-y-6"
                             >
-                              <option value="default">デフォルト</option>
-                              <option value="mkw">MK8DX風</option>
-                            </select>
-                            <p className="text-xs text-slate-500">オーバーレイの見た目を変更します。</p>
-                          </div>
+                              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <Layout className="text-blue-500" size={24} />
+                                表示設定
+                              </h3>
 
-                          {/* デフォルトテーマ設定 */}
-                          {selectedOverlayTheme === 'default' && (
-                            <div className="space-y-6 pt-4 border-t border-slate-700/50">
-                              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
-                                <Palette size={16} className="text-blue-400" />
-                                デフォルトテーマ配色設定
-                              </h4>
+                              <Toggle
+                                name="keepScoreOnRestart"
+                                defaultChecked={config?.scoreSettings?.keepScoreOnRestart ?? true}
+                                label="アプリ再起動時にスコアを保持する"
+                                help="無効にすると、アプリを閉じて再度開いた時にスコアがリセットされます"
+                              />
+                              <Toggle
+                                name="showRemainingRaces"
+                                defaultChecked={config?.showRemainingRaces ?? true}
+                                label="残りレース数を表示"
+                                help="1位のチームの横に残りレース数を表示します"
+                              />
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
-                                  <label className="text-sm font-medium text-slate-200">スコア加算エフェクト色</label>
-                                  <div className="flex flex-col gap-2">
-                                    <ColorPicker
-                                      name="scoreEffect"
-                                      initialValue={config?.overlayColors?.scoreEffect || '#22c55e'}
-                                      onChange={() => setIsDirty(true)}
-                                    />
+                              <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700/50 flex flex-col gap-4">
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-bold text-slate-200">オーバーレイURL</p>
+                                    <p className="text-xs text-slate-500">OBSのブラウザソースに設定するURLです</p>
                                   </div>
-                                  <p className="text-[10px] text-slate-500">点数が加算された時の光の色を変更します。</p>
-                                </div>
-
-                                <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
-                                  <label className="text-sm font-medium text-slate-200">自チームの強調スタイル</label>
-                                  <select
-                                    name="ownTeamStyle"
-                                    defaultValue={config?.overlayColors?.ownTeamStyle || 'rainbow'}
-                                    onChange={(e) => {
-                                      setSelectedOwnTeamStyle(e.target.value)
-                                      setIsDirty(true)
-                                    }}
-                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                                  <button
+                                    type="button"
+                                    onClick={handleOpenOverlay}
+                                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
                                   >
-                                    <option value="solid">単色</option>
-                                    <option value="rainbow">虹色</option>
-                                    <option value="gradient">グラデーション</option>
-                                  </select>
-                                  <p className="text-[10px] text-slate-500">自チーム（または選択中）の枠線のスタイル。</p>
+                                    <ExternalLink size={16} />
+                                    ブラウザで開く
+                                  </button>
+                                </div>
+                                <div className="bg-black/30 p-3 rounded-lg font-mono text-sm text-slate-300 select-all cursor-text flex justify-between items-center">
+                                  <span>http://localhost:{serverPort}/</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(`http://localhost:${serverPort}/`)
+                                      setIsCopied(true)
+                                      setTimeout(() => setIsCopied(false), 2000)
+                                    }}
+                                    className="text-slate-500 hover:text-white transition-colors"
+                                  >
+                                    {isCopied ? <CheckCircle size={16} className="text-green-500" /> : <Copy size={16} />}
+                                  </button>
                                 </div>
                               </div>
-
-                              {/* 条件付き表示: 自チームの詳細設定 */}
-                              {(selectedOwnTeamStyle === 'solid' || selectedOwnTeamStyle === 'gradient') && (
-                                <motion.div
-                                  initial={{ opacity: 0, y: -10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  className="p-4 bg-[#0f172a] rounded-xl border border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-6"
-                                >
-                                  <div className="space-y-2">
-                                    <label className="text-sm font-medium text-slate-200">自チームの色 (単色)</label>
-                                    <ColorPicker
-                                      name="ownTeamColor"
-                                      initialValue={config?.overlayColors?.ownTeamColor || '#fbbf24'}
-                                      onChange={() => setIsDirty(true)}
-                                    />
-                                  </div>
-
-                                  {selectedOwnTeamStyle === 'gradient' && (
-                                    <div className="space-y-2">
-                                      <label className="text-sm font-medium text-slate-200">グラデーション・バリエーション</label>
-                                      <select
-                                        name="ownTeamGradient"
-                                        defaultValue={config?.overlayColors?.ownTeamGradient || 'blue'}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
-                                      >
-                                        <option value="blue">ブルー（青〜水色）</option>
-                                        <option value="pink">ピンク（ピンク〜紫）</option>
-                                        <option value="orange">オレンジ（オレンジ〜黄）</option>
-                                        <option value="emerald">エメラルド（緑〜青碧）</option>
-                                      </select>
-                                    </div>
-                                  )}
-                                </motion.div>
-                              )}
-                            </div>
+                            </motion.div>
                           )}
 
-                          <div className="pt-4">
+                          {/* THEME TAB */}
+                          {overlayTab === 'theme' && (
+                            <motion.div
+                              initial={{ opacity: 0, x: 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              className="space-y-6"
+                            >
+                              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <Palette className="text-purple-500" size={24} />
+                                テーマ & 配色
+                              </h3>
+
+                              <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
+                                <label className="text-sm font-medium text-slate-200">オーバーレイテーマ</label>
+                                <select
+                                  name="overlayTheme"
+                                  defaultValue={config?.overlayTheme || 'default'}
+                                  onChange={(e) => {
+                                    setSelectedOverlayTheme(e.target.value)
+                                    setIsDirty(true)
+                                  }}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                                >
+                                  <option value="default">デフォルト (Default)</option>
+                                  <option value="mkw">マリオカートWii風 (MKW)</option>
+                                </select>
+                                <p className="text-xs text-slate-500">オーバーレイの全体的なデザインスタイルを変更します。</p>
+                              </div>
+
+                              {/* デフォルトテーマ設定 (Common for most themes except very specific ones) */}
+                              <div className="space-y-6 pt-4 border-t border-slate-700/50">
+                                <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-2">
+                                  詳細カラー設定
+                                </h4>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
+                                    <label className="text-sm font-medium text-slate-200">スコア加算エフェクト色</label>
+                                    <div className="flex flex-col gap-2">
+                                      <ColorPicker
+                                        name="scoreEffect"
+                                        initialValue={config?.overlayColors?.scoreEffect || '#22c55e'}
+                                        onChange={() => setIsDirty(true)}
+                                      />
+                                    </div>
+                                    <p className="text-[10px] text-slate-500">点数が加算された時の光の色を変更します。</p>
+                                  </div>
+
+                                  <div className="space-y-2 p-4 bg-[#0f172a] rounded-xl border border-slate-700">
+                                    <label className="text-sm font-medium text-slate-200">自チームの強調スタイル</label>
+                                    <select
+                                      name="ownTeamStyle"
+                                      defaultValue={config?.overlayColors?.ownTeamStyle || 'rainbow'}
+                                      onChange={(e) => {
+                                        setSelectedOwnTeamStyle(e.target.value)
+                                        setIsDirty(true)
+                                      }}
+                                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                                    >
+                                      <option value="solid">単色</option>
+                                      <option value="rainbow">虹色</option>
+                                      <option value="gradient">グラデーション</option>
+                                    </select>
+                                    <p className="text-[10px] text-slate-500">自チーム（または選択中）の枠線のスタイル。</p>
+                                  </div>
+                                </div>
+
+                                {/* 条件付き表示: 自チームの詳細設定 */}
+                                {(selectedOwnTeamStyle === 'solid' || selectedOwnTeamStyle === 'gradient') && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: -10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="p-4 bg-[#0f172a] rounded-xl border border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-6"
+                                  >
+                                    <div className="space-y-2">
+                                      <label className="text-sm font-medium text-slate-200">自チームの色 (単色)</label>
+                                      <ColorPicker
+                                        name="ownTeamColor"
+                                        initialValue={config?.overlayColors?.ownTeamColor || '#fbbf24'}
+                                        onChange={() => setIsDirty(true)}
+                                      />
+                                    </div>
+
+                                    {selectedOwnTeamStyle === 'gradient' && (
+                                      <div className="space-y-2">
+                                        <label className="text-sm font-medium text-slate-200">グラデーション・バリエーション</label>
+                                        <select
+                                          name="ownTeamGradient"
+                                          defaultValue={config?.overlayColors?.ownTeamGradient || 'blue'}
+                                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all font-sans"
+                                        >
+                                          <option value="blue">ブルー（青〜水色）</option>
+                                          <option value="pink">ピンク（ピンク〜紫）</option>
+                                          <option value="orange">オレンジ（オレンジ〜黄）</option>
+                                          <option value="emerald">エメラルド（緑〜青碧）</option>
+                                        </select>
+                                      </div>
+                                    )}
+                                  </motion.div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+
+                          {/* ANIMATION TAB */}
+                          {overlayTab === 'animation' && (
+                            <motion.div
+                              initial={{ opacity: 0, x: 10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              className="space-y-6"
+                            >
+                              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <Zap className="text-yellow-400" size={24} />
+                                アニメーション詳細設定
+                              </h3>
+
+                              <div className="space-y-6 bg-slate-900/50 p-6 rounded-2xl border border-slate-800">
+                                <Toggle
+                                  name="rankAnim"
+                                  defaultChecked={config?.overlayAnimations?.rankAnim ?? true}
+                                  label="順位変動アニメーション"
+                                  help="順位が入れ替わる際のスライドアニメーションを有効にします"
+                                />
+                                <Toggle
+                                  name="flashOnUpdate"
+                                  defaultChecked={config?.overlayAnimations?.flash ?? true}
+                                  label="スコア更新時のフラッシュ"
+                                  help="スコアが加算された際、チーム枠を光らせて強調します"
+                                />
+
+                                <div className="space-y-2 pt-2">
+                                  <div className="flex justify-between">
+                                    <label className="text-sm font-medium text-slate-200">アニメーション速度倍率</label>
+                                    <span className="text-sm font-bold text-blue-400">x{config?.overlayAnimations?.speed ?? 1.0}</span>
+                                  </div>
+                                  <input
+                                    type="range"
+                                    name="animationSpeed"
+                                    min="0.5"
+                                    max="2.0"
+                                    step="0.1"
+                                    defaultValue={config?.overlayAnimations?.speed ?? 1.0}
+                                    className="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                  />
+                                  <div className="flex justify-between text-xs text-slate-500">
+                                    <span>Slow (0.5x)</span>
+                                    <span>Normal (1.0x)</span>
+                                    <span>Fast (2.0x)</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+
+                          <div className="pt-4 border-t border-slate-700/50 mt-6">
                             <button
                               type="submit"
-                              className="w-full bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-blue-900/20 active:scale-95"
+                              className="w-full bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-blue-900/20 active:scale-95 flex justify-center items-center gap-2"
                             >
+                              <Save size={18} />
                               設定を保存
                             </button>
                           </div>
                         </form>
                       </div>
+                    </div>
+
+                    {/* Right Column: Preview */}
+                    <div className="space-y-4 flex flex-col h-full">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-white flex items-center gap-2">
+                          <Monitor size={20} className="text-emerald-400" />
+                          リアルタイムプレビュー
+                        </h3>
+                        <button
+                          type="button"
+                          onClick={handlePlayDemo}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-lg shadow-emerald-900/20 active:scale-95 flex items-center gap-1"
+                        >
+                          <Play size={14} />
+                          アニメーション再生
+                        </button>
+                      </div>
+
+                      <div className="flex-1 bg-black/40 rounded-2xl border border-slate-700 overflow-hidden relative backdrop-blur-sm group">
+                        <iframe
+                          ref={previewIframeRef}
+                          src={previewUrl}
+                          onLoad={sendPreviewData}
+                          className="w-full h-full border-none transform origin-top-left scale-[0.6]"
+                          style={{ width: '166.6%', height: '166.6%' }}
+                          title="Overlay Preview"
+                        />
+                        <div className="absolute inset-0 pointer-events-none border-2 border-slate-700/50 rounded-2xl group-hover:border-slate-600/50 transition-colors"></div>
+                      </div>
+                      <p className="text-center text-xs text-slate-500">
+                        ※ プレビューは60%に縮小表示されています
+                      </p>
                     </div>
                   </div>
                 </motion.div>
