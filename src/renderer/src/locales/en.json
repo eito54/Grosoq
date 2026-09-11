@@ -182,6 +182,7 @@
     "portLabel": "Port",
     "passwordLabel": "WebSocket Password (optional)",
     "passwordPlaceholder": "No password",
+    "passwordHint": "* If you haven't set a password in OBS's WebSocket server settings, leave this field empty.",
     "sourceLabel": "Capture Source Name",
     "selectSource": "Select a source",
     "sourcePlaceholder": "Enter capture source name or run connection test",
@@ -201,6 +202,7 @@
     "obsPort": "OBS WebSocket Port:",
     "obsPassword": "OBS WebSocket Password:",
     "obsPasswordPlaceholder": "Password (if set)",
+    "obsPasswordHint": "* If you haven't set a password in OBS's WebSocket server settings, leave this field empty.",
     "obsSourceName": "OBS Source Name:",
     "obsSourceNamePlaceholder": "Video Capture Device",
     "obsStatusConnected": "Connected",
@@ -233,6 +235,22 @@
     "calTitle": "Data Region Calibration",
     "calHint": "Enclose only the region containing names and scores. Anything outside (badges/stickers) is excluded from analysis. Values are % of full capture width/height.",
     "calGetPreview": "Capture Preview",
+    "obsDefaultsHint": "* Unless you have a specific reason to change them, the default OBS IP (127.0.0.1) and port (4455) work as-is.",
+    "pasteApiKey": "Paste",
+    "calRegionHint12": "12P: On the results screen, select the range where all players' names and scores (1st-12th) are visible.",
+    "calRegionHint24": "24P: On the pre-race standings screen, select the range where names and scores are listed vertically, 12 players per column (2 columns).",
+    "calSingleXLabel": "X Range (names to scores)",
+    "calSavePreset": "Save to Preset",
+    "calPresetLoad": "Load saved values",
+    "calPresetEmpty": "Not saved yet",
+    "calPresetActive": "Current analysis context (mode & game)",
+    "calPresetSelectSaved": "View and edit the saved calibration values",
+    "calPresetSelectNew": "Not saved yet — creates a new preset from the current values",
+    "calContextBadge": "Analyzing: {{name}}",
+    "calPresetsHint": "There are 3 fixed presets: MK8DX, MK World 12P, and MK World 24P (● = saved). Click a chip to switch which preset you are editing; edits are saved automatically. The preset marked \"← Analyzing:\" is the one actually used for the current analysis mode / game.",
+    "standardGameLabel": "Game",
+    "gameMk8dx": "MK8DX",
+    "gameMkw": "Mario Kart World",
     "calColA": "Column A (left)",
     "calColB": "Column B (right)",
     "calYLabel": "Vertical range (shared)",
@@ -254,7 +272,24 @@
     "resetScores": "Reset Scores",
     "testConnection": "Test Connection",
     "checkUpdates": "Check for Updates",
-    "reopenManager": "Reopen Manager"
+    "reopenManager": "Reopen Manager",
+    "autoAddOverlay": "Add Overlay to OBS"
+  },
+  "obsQuality": {
+    "connected": "Connected",
+    "good": "Good",
+    "fair": "Fair",
+    "poor": "Laggy",
+    "reconnecting": "Reconnecting…",
+    "disconnected": "Disconnected",
+    "attempt": "Reconnect attempt #{{n}}",
+    "latency": "Latency {{ms}}ms"
+  },
+  "raceTracker": {
+    "race": "Race {{race}}",
+    "remaining": "{{n}} races left",
+    "estimated": "Est.",
+    "estimatedHint": "Estimated from total points — disconnected players or missing data may affect accuracy"
   },
   "scoreSettings": {
     "title": "Score Settings",
@@ -351,10 +386,17 @@
   "footer": {
     "madeWith": "Made with ❤️ by eito54"
   },
+  "presets": {
+    "mk8dx": "MK8DX",
+    "mkw12": "MK World 12P",
+    "mkw24": "MK World 24P"
+  },
   "language": {
     "select": "Select Language",
     "japanese": "日本語",
-    "english": "English"
+    "english": "English",
+    "french": "Français",
+    "spanish": "Español"
   },
   "dc": {
     "title": "Score Decrease Detected",

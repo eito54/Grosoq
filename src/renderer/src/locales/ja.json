@@ -182,6 +182,7 @@
     "portLabel": "ポート",
     "passwordLabel": "WebSocket パスワード (任意)",
     "passwordPlaceholder": "パスワードなし",
+    "passwordHint": "※ OBSのWebSocketサーバー設定でパスワードを設定していない場合は、空欄のままで構いません。",
     "sourceLabel": "キャプチャソース名",
     "selectSource": "ソースを選択してください",
     "sourcePlaceholder": "キャプチャソース名を入力または接続テスト",
@@ -201,6 +202,7 @@
     "obsPort": "OBS WebSocketポート:",
     "obsPassword": "OBS WebSocketパスワード:",
     "obsPasswordPlaceholder": "パスワード（設定している場合のみ）",
+    "obsPasswordHint": "※ OBSのWebSocketサーバー設定でパスワードを設定していない場合は、空欄のままで構いません。",
     "obsSourceName": "OBS ソース名:",
     "obsSourceNamePlaceholder": "映像キャプチャデバイス",
     "obsStatusConnected": "接続済み",
@@ -233,6 +235,22 @@
     "calTitle": "データ領域の校正",
     "calHint": "名前と点数が含まれる範囲だけを囲んでください。範囲外（ステッカー等）は解析から除外されます。数値はキャプチャ全幅/全高に対する%です。",
     "calGetPreview": "プレビューを取得",
+    "obsDefaultsHint": "※ 特に変更がなければ、OBSのIPは 127.0.0.1 / ポートは 4455 のデフォルトのままでOKです。",
+    "pasteApiKey": "ペースト",
+    "calRegionHint12": "12人用: リザルト画面で、1位〜12位全員の名前から点数が映っている範囲を選択してください。",
+    "calRegionHint24": "24人用: レース開始前の点数画面で、名前から点数が縦に12人ずつ2列で映っている範囲を選択してください。",
+    "calSingleXLabel": "範囲X（名前〜点数）",
+    "calSavePreset": "プリセットに保存",
+    "calPresetLoad": "保存した値を読み込む",
+    "calPresetEmpty": "未保存",
+    "calPresetActive": "現在の解析コンテキスト（モードと対象ゲームに連動）",
+    "calPresetSelectSaved": "保存済みの校正値を表示・編集する",
+    "calPresetSelectNew": "未保存 — 現在の値を出発点に新規作成します",
+    "calContextBadge": "解析中: {{name}}",
+    "calPresetsHint": "プリセットは「MK8DX」「MK World 12人」「MK World 24人」の3枠固定です。●は保存済みを示します。チップをクリックすると編集対象を切り替えられ、編集内容は自動保存されます。「← 解析中:」の付いたプリセットが現在の解析モード/対象ゲームで実際に使用されるものです。",
+    "standardGameLabel": "対象ゲーム",
+    "gameMk8dx": "MK8DX",
+    "gameMkw": "マリオカートワールド",
     "calColA": "列A（左）",
     "calColB": "列B（右）",
     "calYLabel": "縦範囲（2列共通）",
@@ -254,7 +272,24 @@
     "resetScores": "スコアをリセット",
     "testConnection": "接続テスト",
     "checkUpdates": "アップデートチェック",
-    "reopenManager": "リオープンマネージャー"
+    "reopenManager": "リオープンマネージャー",
+    "autoAddOverlay": "オーバーレイをOBSに追加"
+  },
+  "obsQuality": {
+    "connected": "接続済み",
+    "good": "良好",
+    "fair": "普通",
+    "poor": "遅延",
+    "reconnecting": "再接続中…",
+    "disconnected": "未接続",
+    "attempt": "{{n}}回目の再接続を試行中",
+    "latency": "応答速度 {{ms}}ms"
+  },
+  "raceTracker": {
+    "race": "第{{race}}戦",
+    "remaining": "残り{{n}}レース",
+    "estimated": "推定",
+    "estimatedHint": "切断者や未取得のレースがあるため推定値です（合計点から算出）"
   },
   "scoreSettings": {
     "title": "スコア設定",
@@ -351,10 +386,17 @@
   "footer": {
     "madeWith": "Made with ❤️ by eito54"
   },
+  "presets": {
+    "mk8dx": "MK8DX",
+    "mkw12": "MK World 12人",
+    "mkw24": "MK World 24人"
+  },
   "language": {
     "select": "言語を選択",
     "japanese": "日本語",
-    "english": "English"
+    "english": "English",
+    "french": "Français",
+    "spanish": "Español"
   },
   "dc": {
     "title": "スコア減少を検出",

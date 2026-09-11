@@ -25,17 +25,46 @@ import {
   ChevronLeft,
   ChevronRight,
   Layout,
-  Github,
-  Twitter,
   Clipboard,
   Check,
   Radio,
-  Search,
+  Flag,
+  MonitorDown,
   CheckCircle,
   Copy
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import bootLogo from './assets/boot-logo.png'
+import mkWorldLogo from './assets/Mario_Kart_World_Logo.png'
+import githubIcon from './assets/209816847.jpg'
+import twitterIcon from './assets/jHdAfJSd_400x400.jpg'
+
+// 言語セレクター用の対応言語一覧（表示順 = ピルの並び順）
+const LANGUAGE_OPTIONS: { code: string; short: string }[] = [
+  { code: 'ja', short: '日本語' },
+  { code: 'en', short: 'EN' },
+  { code: 'fr', short: 'FR' },
+  { code: 'es', short: 'ES' }
+]
+
+/**
+ * クリップボードの内容を指定IDの入力欄へ貼り付ける。
+ * ReactのonChangeを発火させるため、ネイティブsetter経由でvalueを設定し
+ * inputイベントをバブルさせる（フォームの自動保存にも乗る）。
+ */
+async function pasteIntoInput(inputId: string): Promise<void> {
+  try {
+    const text = await navigator.clipboard.readText()
+    if (!text) return
+    const el = document.getElementById(inputId) as HTMLInputElement | null
+    if (!el) return
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+    setter?.call(el, text)
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+  } catch {
+    // クリップボード読み取り不可の環境では何もしない
+  }
+}
 
 import { ScanningOverlay } from './components/ScanningOverlay'
 import { ColorPicker } from './components/ColorPicker'
@@ -45,6 +74,7 @@ import { ReconnectModal } from './components/ReconnectModal'
 import { SlotModal } from './components/SlotModal'
 import { WhatsNewModal } from './components/WhatsNewModal'
 import { ScoreItem } from './components/ScoreItem'
+import { SourceSelect } from './components/SourceSelect'
 import { GroqModelList } from './components/GroqModelList'
 import { StandingsCalibrationPanel } from './components/StandingsCalibration'
 import { LogEntry, SlotData } from './types'
@@ -53,6 +83,37 @@ import { BackgroundEffect } from './components/BackgroundEffect'
 
 // Removed local definitions (CountUp, ScanningOverlay, ColorPicker, MessageModal, ConfirmModal, SlotModal, WhatsNewModal, ScoreItem, cn, calculateRaceScore, LogEntry, SlotData) as they are now imported.
 
+/**
+ * 設定フォーム用のトグルスイッチ。
+ * App() の中に定義するとレンダーごとに別コンポーネント型とみなされて
+ * マウントし直し、内部の checked 状態が黙って巻き戻るため必ずモジュールスコープに置く。
+ */
+function Toggle({ name, defaultChecked, label, help }: { name: string, defaultChecked: boolean, label: string, help?: string }) {
+  const [checked, setChecked] = useState(defaultChecked)
+
+  useEffect(() => {
+    setChecked(defaultChecked)
+  }, [defaultChecked])
+
+  return (
+    <div className="flex items-center justify-between p-4 bg-surface rounded-xl border border-slate-700">
+      <div>
+        <p className="font-medium text-slate-200">{label}</p>
+        {help && <p className="text-xs text-slate-400">{help}</p>}
+      </div>
+      <label className="relative inline-flex items-center cursor-pointer">
+        <input
+          type="checkbox"
+          name={name}
+          checked={checked}
+          onChange={(e) => setChecked(e.target.checked)}
+          className="sr-only peer"
+        />
+        <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
+      </label>
+    </div>
+  )
+}
 
 function App(): JSX.Element {
   const { t, i18n } = useTranslation()
@@ -87,10 +148,18 @@ function App(): JSX.Element {
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false)
   const [isBooting, setIsBooting] = useState(true)
   const isBootingRef = React.useRef(true)
-  const saveButtonRef = React.useRef<HTMLDivElement | null>(null)
-  const scrollToSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  // 設定フォーム自動保存用（ボタン廃止により送信時スクロールは不要に）
+  const copiedTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const copiedUrlTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const whatsNewTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autoSaveTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savedTickTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const [showWizard, setShowWizard] = useState(false)
   const [obsStatus, setObsStatus] = useState(false)
+  // OBS詳細ステータス（再接続中フラグ・試行回数・RTT）。品質バッジ表示に使用
+  const [obsDetail, setObsDetail] = useState<{ connected: boolean; reconnecting: boolean; attempt: number; latencyMs: number | null }>({ connected: false, reconnecting: false, attempt: 0, latencyMs: null })
+  // 設定自動保存成功時の一時インジケータ表示
+  const [showSavedTick, setShowSavedTick] = useState(false)
   const [obsInputs, setObsInputs] = useState<any[]>([])
   const [isObsConnecting, setIsObsConnecting] = useState(false)
 
@@ -131,7 +200,6 @@ function App(): JSX.Element {
   // Custom modal states for Reopen Manager
   const [showSlotNameModal, setShowSlotNameModal] = useState(false)
   const [pendingSlotId, setPendingSlotId] = useState<number | null>(null)
-  const [slotNameInput, setSlotNameInput] = useState('')
   const [slotModalType, setSlotModalType] = useState<'load' | 'add' | 'delete'>('load')
   const [showResetConfirmModal, setShowResetConfirmModal] = useState(false)
 
@@ -146,10 +214,9 @@ function App(): JSX.Element {
   const [overlayTab, setOverlayTab] = useState<'general' | 'theme' | 'animation'>('general')
 
   // Persist manually selected current team
-  // Persist manually selected current team
-  // Persist manually selected current team
   const [manualCurrentTeam, setManualCurrentTeam] = useState<string | null>(null)
   const [isCopied, setIsCopied] = useState(false)
+  const [isCopiedUrl, setIsCopiedUrl] = useState(false)
 
   // Overlay Preview Refs and state
   const previewIframeRef = React.useRef<HTMLIFrameElement>(null)
@@ -159,21 +226,33 @@ function App(): JSX.Element {
     setPreviewUrl(`http://localhost:${serverPort}/?overlay=true&preview=true`)
   }, [serverPort])
 
+  // プレビューiframeへのpostMessageはオーバーレイに公開してよい設定のみを
+  // 射影して送る（APIキー等のシークレットは絶対に含めない）。
+  // サーバー側 /api/config の sanitizeConfigForOverlay と同じ方針。
+  const previewOrigin = `http://localhost:${serverPort}`
+  const sanitizeConfigForPreview = useCallback((cfg: any) => ({
+    overlayTheme: cfg.overlayTheme,
+    overlayColors: cfg.overlayColors,
+    overlayAnimations: cfg.overlayAnimations,
+    showRemainingRaces: cfg.showRemainingRaces
+  }), [])
+
   // Sync config changes to preview in real-time
   const sendPreviewData = useCallback(() => {
     if (previewIframeRef.current && config) {
       previewIframeRef.current.contentWindow?.postMessage({
         type: 'updateConfig',
-        config: config
-      }, '*')
+        config: sanitizeConfigForPreview(config)
+      }, previewOrigin)
     }
-  }, [config])
+  }, [config, sanitizeConfigForPreview, previewOrigin])
 
   useEffect(() => {
     sendPreviewData()
 
     // Listen for iframe ready signal
     const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== previewOrigin) return
       if (event.data?.type === 'overlayReady') {
         console.log('Preview iframe reported ready, initiating sandbox...')
         sendPreviewData()
@@ -190,14 +269,14 @@ function App(): JSX.Element {
           previewIframeRef.current.contentWindow?.postMessage({
             type: 'updateScores',
             scores: placeholderScores
-          }, '*')
+          }, previewOrigin)
         }
       }
     }
 
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
-  }, [sendPreviewData])
+  }, [sendPreviewData, previewOrigin])
 
   const handlePlayDemo = () => {
     if (previewIframeRef.current) {
@@ -213,7 +292,7 @@ function App(): JSX.Element {
       previewIframeRef.current.contentWindow?.postMessage({
         type: 'updateScores',
         scores: demoScores
-      }, '*')
+      }, previewOrigin)
     }
   }
 
@@ -239,7 +318,6 @@ function App(): JSX.Element {
     if (!silent) setIsCheckingUpdate(true)
     try {
       console.log('Starting update check...');
-      // @ts-ignore
       const result = await window.electron.ipcRenderer.invoke('check-for-updates')
       console.log('Update check result:', result);
 
@@ -292,47 +370,49 @@ function App(): JSX.Element {
         })
       }
     }
-    // @ts-ignore
+    // 接続品質・再接続状況を含む詳細ステータス
+    const handleObsDetail = (_event: any, detail: { connected: boolean; reconnecting: boolean; attempt: number; latencyMs: number | null }) => {
+      setObsDetail(detail)
+      setObsStatus(detail.connected)
+    }
     window.electron?.ipcRenderer?.on('obs-status-change', handleObsStatus)
+    window.electron?.ipcRenderer?.on('obs-status-detail', handleObsDetail)
 
     // Initial check
-    // @ts-ignore
-    window.electron?.ipcRenderer?.invoke('obs-get-status').then(status => {
-      setObsStatus(status)
-      if (status) {
-        // @ts-ignore
-        window.electron?.ipcRenderer?.invoke('obs-get-inputs').then((result: any) => {
-          if (result.success) setObsInputs(result.inputs)
-        })
+    window.electron?.ipcRenderer?.invoke('obs-status-detail').then((detail: any) => {
+      if (detail) {
+        setObsDetail(detail)
+        setObsStatus(!!detail.connected)
+        if (detail.connected) {
+          window.electron?.ipcRenderer?.invoke('obs-get-inputs').then((result: any) => {
+            if (result.success) setObsInputs(result.inputs)
+          })
+        }
       }
     })
 
     return () => {
-      // @ts-ignore
       window.electron?.ipcRenderer?.removeListener('obs-status-change', handleObsStatus)
+      window.electron?.ipcRenderer?.removeListener('obs-status-detail', handleObsDetail)
     }
   }, [])
 
   const toggleObsConnection = async () => {
     if (obsStatus) {
-      // @ts-ignore
       await window.electron.ipcRenderer.invoke('obs-disconnect')
     } else {
       setIsObsConnecting(true)
       try {
-        // @ts-ignore
         const result = await window.electron.ipcRenderer.invoke('obs-connect', config)
         if (!result.success) {
           showGuiMessage('error', t('msgGui.obsErrorTitle'), result.error)
         } else {
           // Connected! If source name is empty, try to find a good one
           if (!config?.obsSourceName) {
-            // @ts-ignore
             const sourceResult = await window.electron.ipcRenderer.invoke('obs-find-best-source')
             if (sourceResult.success && sourceResult.sourceName) {
               const updatedConfig = { ...config, obsSourceName: sourceResult.sourceName }
               setConfig(updatedConfig)
-              // @ts-ignore
               window.electron.ipcRenderer.invoke('save-config', updatedConfig)
             }
           }
@@ -344,7 +424,6 @@ function App(): JSX.Element {
   }
 
   const autoDetectObsSettings = async () => {
-    // @ts-ignore
     const result = await window.electron.ipcRenderer.invoke('obs-detect-settings')
     if (result.success && result.settings) {
       const { port, password, enabled } = result.settings
@@ -363,11 +442,21 @@ function App(): JSX.Element {
   }
 
   const autoSetupObsOverlay = async () => {
-    if (!obsStatus) {
+    // 未接続でもワンクリックで完結できるよう、設定があれば自動接続を試みる
+    let connected = obsStatus
+    if (!connected && config?.obsIp && config?.obsPort) {
+      try {
+        await window.electron.ipcRenderer.invoke('obs-connect', config)
+        const detail = await window.electron.ipcRenderer.invoke('obs-status-detail')
+        connected = !!detail?.connected
+      } catch {
+        connected = false
+      }
+    }
+    if (!connected) {
       showGuiMessage('info', t('msgGui.obsTitle'), t('msgGui.obsConnectFirst'))
       return
     }
-    // @ts-ignore
     const result = await window.electron.ipcRenderer.invoke('obs-auto-setup')
     if (result.success) {
       showGuiMessage('info', t('msgGui.success'), t('msgGui.obsOverlayAdded'))
@@ -385,7 +474,6 @@ function App(): JSX.Element {
 
     try {
       if (!window.electron || !window.electron.ipcRenderer) return
-      // @ts-ignore
       const result = await window.electron.ipcRenderer.invoke('save-config', newConfig)
       if (result.success) {
         addLog(mode === 'standings24'
@@ -399,13 +487,36 @@ function App(): JSX.Element {
     }
   }
 
+  // 操作画面から標準モード(12人)の解析対象ゲーム（MK8DX / MK World）を切り替える
+  const handleStandardGameChange = async (game: 'mk8dx' | 'mkworld') => {
+    if (!config || config.standardGame === game) return
+
+    const newConfig = { ...config, standardGame: game }
+    setConfig(newConfig)
+
+    try {
+      if (!window.electron || !window.electron.ipcRenderer) return
+      const result = await window.electron.ipcRenderer.invoke('save-config', newConfig)
+      if (result.success) {
+        addLog((game === 'mkworld' ? t('config.gameMkw') : t('config.gameMk8dx')) + t('messages.analysisModeSwitchedSuffix'), 'success')
+      } else {
+        addLog(t('messages.configSaveError'), 'error')
+      }
+    } catch (error) {
+      addLog(t('messages.configSaveError'), 'error')
+    }
+  }
+
+  // (注) モード/ゲーム切替時のプリセット自動適用は廃止した。
+  // 起動直後にも発火して既存の校正值をプリセット値で静かに上書きする事故が起きたため、
+  // 使用値の解決はメインプロセスの resolveStandingsCalibration() が解析時に都度行う。
+
   const loadConfig = useCallback(async () => {
     try {
       if (!window.electron || !window.electron.ipcRenderer) {
         console.warn('Electron IPC is not available. This might be expected in a browser preview.')
         return
       }
-      // @ts-ignore
       const cfg = await window.electron.ipcRenderer.invoke('get-config')
 
       // デフォルト値の補完・深いマージはメインプロセス(ConfigManager)側で行われるため、
@@ -428,7 +539,6 @@ function App(): JSX.Element {
 
       // Auto-connect to OBS on startup if configured
       if (cfg?.obsIp && cfg?.obsPort) {
-        // @ts-ignore
         window.electron.ipcRenderer.invoke('obs-connect', cfg)
       }
 
@@ -503,7 +613,6 @@ function App(): JSX.Element {
         loadPlayerMappings() // UI側の状態も即座にリセット
       }
 
-      // @ts-ignore
       const result = await window.electron.ipcRenderer.invoke('fetch-race-results', effectiveTotal)
 
       if (result.success) {
@@ -695,7 +804,7 @@ function App(): JSX.Element {
       setStatus('error')
       addLog(t('log.networkError', { error: error.message }), 'error')
     }
-  }, [status, scores, addLog, serverPort, loadScores, loadPlayerMappings, manualCurrentTeam, config])
+  }, [status, addLog, serverPort, loadScores, loadPlayerMappings, manualCurrentTeam, config])
 
   const resolveReconnect = useCallback(async (restore: boolean) => {
     const pendingSave = pendingFinalRef.current
@@ -745,6 +854,12 @@ function App(): JSX.Element {
   useEffect(() => {
     handleFetchResultsRef.current = handleFetchResults
   }, [handleFetchResults])
+
+  // 初回レンダーのクロージャで生存し続けるリスナー(t)から最新の翻訳関数を参照するためのRef
+  const tRef = React.useRef(t)
+  useEffect(() => {
+    tRef.current = t
+  }, [t])
 
 
   const handleStartEdit = () => {
@@ -1010,41 +1125,18 @@ function App(): JSX.Element {
     setEditingMappings(newMappings)
   }
 
-  // 設定変更時に、保存ボタンが画面外なら自動でスクロールして見えるようにする
-  const handleOverlayFormChange = () => {
-    setIsDirty(true)
+  // (注) フォームの変更検知は handleAutoSaveChange に一本化
 
-    // テキスト入力中の連続スクロールを避けるためデバウンスする
-    if (scrollToSaveTimerRef.current) {
-      clearTimeout(scrollToSaveTimerRef.current)
-    }
-    scrollToSaveTimerRef.current = setTimeout(() => {
-      const el = saveButtonRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight
-      if (!isVisible) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-      }
-    }, 500)
-  }
-
-  useEffect(() => {
-    return () => {
-      if (scrollToSaveTimerRef.current) clearTimeout(scrollToSaveTimerRef.current)
-    }
-  }, [])
-
-  const handleSaveConfig = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const form = e.target as HTMLFormElement
+  /**
+   * フォームの入力内容から部分設定オブジェクトを収集する。
+   * フォームに存在するフィールドのみを更新対象にするため、別タブのフォーム保存時に
+   * 既存の設定が null で上書きされるのを防ぐ。
+   */
+  const collectConfigFromForm = (form: HTMLFormElement): any => {
+    if (!config) return null
     const formData = new FormData(form)
-
-    // フォームに存在するフィールドのみを更新するように修正
-    // これにより、別タブのフォーム保存時に既存の設定が null で上書きされるのを防ぐ
     const newConfig = { ...config }
 
-    // フォーム内に特定の名前の入力要素が存在するかチェックする関数
     const hasField = (name: string) => {
       return form.querySelector(`[name="${name}"]`) !== null
     }
@@ -1120,15 +1212,21 @@ function App(): JSX.Element {
       }
     }
 
+    return newConfig
+  }
+
+  /** 収集済み設定を永続化し、UI状態を同期する。成功時は「保存しました」インジケータを一時表示 */
+  const persistConfigInternal = async (newConfig: any): Promise<void> => {
     try {
       if (!window.electron || !window.electron.ipcRenderer) return
-      // @ts-ignore
       const result = await window.electron.ipcRenderer.invoke('save-config', newConfig)
       if (result.success) {
         setConfig(newConfig)
         setIsDirty(false)
         setIsConfigInvalid(!newConfig?.obsIp || !newConfig?.obsPort || !newConfig?.obsSourceName || !newConfig?.groqApiKey)
-        addLog(t('messages.configSaved'), 'success')
+        setShowSavedTick(true)
+        if (savedTickTimerRef.current) clearTimeout(savedTickTimerRef.current)
+        savedTickTimerRef.current = setTimeout(() => setShowSavedTick(false), 2000)
       } else {
         addLog(t('messages.configSaveError'), 'error')
       }
@@ -1136,6 +1234,35 @@ function App(): JSX.Element {
       addLog(t('log.configSaveFailed'), 'error')
     }
   }
+
+  /**
+   * 設定フォームの自動保存: onChange のたびに呼ばれ、最後の編集から
+   * 800ms 経過した時点でまとめて保存する（タイプ中の連続保存を避けるデバウンス）。
+   * 送信ボタンは廃止したため、保存はこの経路に一本化されている。
+   */
+  const handleAutoSaveChange = (e: React.ChangeEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const form = e.currentTarget
+    setIsDirty(true)
+    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    autoSaveTimerRef.current = setTimeout(() => {
+      autoSaveTimerRef.current = null
+      const collected = collectConfigFromForm(form)
+      if (collected) void persistConfigInternal(collected)
+    }, 800)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+      if (copiedUrlTimerRef.current) clearTimeout(copiedUrlTimerRef.current)
+      if (whatsNewTimerRef.current) clearTimeout(whatsNewTimerRef.current)
+      if (savedTickTimerRef.current) clearTimeout(savedTickTimerRef.current)
+      // アンマウント直前に保留中の自動保存があれば破棄する
+      // （タブ再マウント時に最新configが読み込まれるため二重保存を回避）
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current)
+    }
+  }, [])
 
   const handleTabChange = (tab: typeof activeTab) => {
     if (tab === activeTab) return
@@ -1170,46 +1297,49 @@ function App(): JSX.Element {
 
   const handleOpenOverlay = () => {
     const url = `http://localhost:${serverPort}/`
-    // @ts-ignore
     window.electron.ipcRenderer.invoke('open-external', url)
   }
 
-  const toggleLanguage = () => {
-    const newLang = i18n.language === 'ja' ? 'en' : 'ja'
+  const handleLanguageChange = (newLang: string) => {
     i18n.changeLanguage(newLang)
     if (config) {
       const updatedConfig = { ...config, language: newLang }
-      // @ts-ignore
       window.electron.ipcRenderer.invoke('save-config', updatedConfig)
     }
   }
 
-  const Toggle = ({ name, defaultChecked, label, help }: { name: string, defaultChecked: boolean, label: string, help?: string }) => {
-    const [checked, setChecked] = useState(defaultChecked)
+  // 言語コードの正規化（'ja-JP' 等のリージョン付きコードにも対応）
+  const getCurrentLanguage = () => (i18n.language || 'ja').slice(0, 2)
 
-    useEffect(() => {
-      setChecked(defaultChecked)
-    }, [defaultChecked])
-
-    return (
-      <div className="flex items-center justify-between p-4 bg-surface rounded-xl border border-slate-700">
-        <div>
-          <p className="font-medium text-slate-200">{label}</p>
-          {help && <p className="text-xs text-slate-400">{help}</p>}
-        </div>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            name={name}
-            checked={checked}
-            onChange={(e) => setChecked(e.target.checked)}
-            className="sr-only peer"
-          />
-          <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-accent-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
-        </label>
-      </div>
-    )
+  // ---- レース番号トラッカー: 全チームの合計点から現在のレース数を算出 ----
+  // 1レースあたりの総配点（全プレイヤーの配点合計）:
+  //   標準12人モード(MK8DX) = 82点 / 24人スタンド(MK World) = 144点
+  // グランプリは両モードとも12レース構成と仮定する。
+  const TOTAL_RACES_PER_GP = 12
+  const totalPoints = scores.reduce((sum, team) => sum + (team.score || 0), 0)
+  const pointsPerRace = config?.analysisMode === 'standings24' ? 144 : 82
+  const rawRaces = pointsPerRace > 0 ? totalPoints / pointsPerRace : 0
+  const raceNum = Math.min(TOTAL_RACES_PER_GP, Math.max(1, Math.round(rawRaces)))
+  // 合計点が1レース配点の整数倍でない場合（切断者や部分的な取得漏れ）は「推定」と表示
+  const isRaceEstimate = totalPoints > 0 && !Number.isInteger(rawRaces)
+  const raceTracker = {
+    totalPoints,
+    raceNum,
+    isEstimated: isRaceEstimate,
+    remaining: Math.max(0, TOTAL_RACES_PER_GP - raceNum)
   }
+
+  // ---- OBS接続品質バッジ: RTTから品質ラベルと色を決定 ----
+  const obsLatency = obsDetail.latencyMs
+  const obsQualityKey = obsLatency == null
+    ? t('obsQuality.connected')
+    : obsLatency < 100
+      ? t('obsQuality.good')
+      : obsLatency < 300
+        ? t('obsQuality.fair')
+        : t('obsQuality.poor')
+  const obsQualityTextClass = obsLatency == null || obsLatency < 300 ? 'text-accent-500' : 'text-amber-400'
+  const obsQualityDotClass = obsLatency == null || obsLatency < 300 ? 'bg-accent-500' : 'bg-amber-400'
 
   const finishBoot = useCallback(() => {
     // 一度ブートしたら再入しない（設定編集のたびにタイマー/ウィザードが
@@ -1238,7 +1368,8 @@ function App(): JSX.Element {
         if (result.show) {
           setWhatsNewInfo({ version: result.version, notes: result.notes })
           // 少し遅らせて起動時の情報量過多を避ける
-          setTimeout(() => setShowWhatsNew(true), 3000)
+          if (whatsNewTimerRef.current) clearTimeout(whatsNewTimerRef.current)
+          whatsNewTimerRef.current = setTimeout(() => setShowWhatsNew(true), 3000)
         }
       } catch (err) {
         console.error('Failed to check whats new:', err)
@@ -1253,7 +1384,6 @@ function App(): JSX.Element {
   // 1回限りの初期化（リスナー登録など）
   useEffect(() => {
     if (window.electron && window.electron.ipcRenderer) {
-      // @ts-ignore
       window.electron.ipcRenderer.invoke('get-app-version').then((v) => {
         setAppVersion(v)
         console.log('App version loaded:', v)
@@ -1264,7 +1394,7 @@ function App(): JSX.Element {
 
       window.electron.ipcRenderer.invoke('get-server-port').then((port: number) => {
         setServerPort(port)
-        addLog(t('log.serverListening', { port }), 'success')
+        addLog(tRef.current('log.serverListening', { port }), 'success')
       })
 
       // グローバルショートカットのリスナー
@@ -1293,14 +1423,14 @@ function App(): JSX.Element {
       const removeUpdateDownloaded = window.electron.ipcRenderer.on('update-downloaded', () => {
         setIsUpdateDownloaded(true)
         setIsDownloadingUpdate(false)
-        addLog(t('log.updateDownloaded'), 'success')
+        addLog(tRef.current('log.updateDownloaded'), 'success')
       })
 
       const removeUpdateError = window.electron.ipcRenderer.on('update-error', (_event: any, err: any) => {
         setIsDownloadingUpdate(false)
         setIsCheckingUpdate(false)
         console.error('Renderer received detailed update-error:', err)
-        addLog(t('log.updateError'), 'error')
+        addLog(tRef.current('log.updateError'), 'error')
       })
 
       return () => {
@@ -1335,7 +1465,13 @@ function App(): JSX.Element {
       // SSE for real-time updates
       eventSource = new EventSource(`http://localhost:${serverPort}/api/scores/events`)
       eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data)
+        let data: any
+        try {
+          data = JSON.parse(event.data)
+        } catch {
+          // 不正なフレームでonmessageが落ちないようにする（オーバーレイ側と同じ方針）
+          return
+        }
         if (data.type === 'scores-updated') {
           loadScores()
           loadPlayerMappings()
@@ -1368,25 +1504,51 @@ function App(): JSX.Element {
                 ease: "easeOut",
                 scale: { type: "spring", stiffness: 50 }
               }}
-              className="relative"
+              className="relative flex flex-col items-center w-full px-6"
             >
               <img
                 src={bootLogo}
-                alt="Boot Logo"
-                className="w-[500px] h-auto drop-shadow-[0_0_30px_rgba(239,68,68,0.45)]"
+                alt="Grosoq Boot Logo"
+                className="w-[min(430px,78vw,58vh)] h-auto drop-shadow-[0_0_30px_rgba(239,68,68,0.45)]"
               />
+
+              {/* × セパレーター */}
               <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: "100%" }}
-                transition={{ duration: 2, ease: "easeInOut", delay: 0.5 }}
-                className="absolute -bottom-8 left-0 h-1 bg-gradient-to-r from-transparent via-accent-500 to-transparent rounded-full shadow-[0_0_15px_rgba(239,68,68,0.8)]"
+                initial={{ opacity: 0, scaleX: 0.6 }}
+                animate={{ opacity: 1, scaleX: 1 }}
+                transition={{ delay: 0.7, duration: 0.6, ease: "easeOut" }}
+                className="my-5 sm:my-6 flex items-center gap-3 sm:gap-4"
+                aria-hidden="true"
+              >
+                <span className="h-px w-12 sm:w-20 bg-gradient-to-r from-transparent to-accent-500/60" />
+                <span className="text-accent-400/90 text-lg sm:text-xl font-black select-none">×</span>
+                <span className="h-px w-12 sm:w-20 bg-gradient-to-l from-transparent to-accent-500/60" />
+              </motion.div>
+
+              <motion.img
+                src={mkWorldLogo}
+                alt="Mario Kart World"
+                initial={{ opacity: 0, y: 18, scale: 0.94 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.85, duration: 0.8, ease: "easeOut" }}
+                className="w-[min(310px,56vw,42vh)] h-auto opacity-95 drop-shadow-[0_10px_28px_rgba(37,99,235,0.35)]"
               />
+
+              {/* ローディングバー */}
+              <div className="mt-9 w-[min(360px,66vw)] h-1 rounded-full bg-white/10 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 2, ease: "easeInOut", delay: 0.5 }}
+                  className="h-full bg-gradient-to-r from-transparent via-accent-500 to-transparent rounded-full shadow-[0_0_15px_rgba(239,68,68,0.8)]"
+                />
+              </div>
             </motion.div>
             <motion.p
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1, duration: 0.8 }}
-              className="mt-12 text-accent-400 font-black tracking-[0.2em] text-sm uppercase"
+              className="mt-9 text-accent-400 font-black tracking-[0.2em] text-sm uppercase"
             >
               Initializing Grosoq System
             </motion.p>
@@ -1484,13 +1646,24 @@ function App(): JSX.Element {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Groq API Key</label>
-                          <input
-                            type="password"
-                            placeholder="gsk_..."
-                            value={config?.groqApiKey || ''}
-                            onChange={(e) => setConfig({ ...config, groqApiKey: e.target.value })}
-                            className="w-full bg-surface border border-slate-700 rounded-xl px-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-accent-500/50 transition-all font-mono"
-                          />
+                          <div className="flex gap-2">
+                            <input
+                              id="wizGroqApiKey"
+                              type="password"
+                              placeholder="gsk_..."
+                              value={config?.groqApiKey || ''}
+                              onChange={(e) => setConfig({ ...config, groqApiKey: e.target.value })}
+                              className="flex-1 min-w-0 bg-surface border border-slate-700 rounded-xl px-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-accent-500/50 transition-all font-mono"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => pasteIntoInput('wizGroqApiKey')}
+                              className="flex items-center gap-1.5 text-xs px-3 rounded-xl border border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-800 transition-all whitespace-nowrap"
+                            >
+                              <Clipboard size={14} />
+                              {t('config.pasteApiKey')}
+                            </button>
+                          </div>
                           <p className="text-xs text-slate-400">{t('wizard.keyHint')}</p>
                         </div>
 
@@ -1574,6 +1747,9 @@ function App(): JSX.Element {
                         </div>
                       </div>
 
+                      {/* 既定値案内: 特別な理由がなければデフォルトのままで良い */}
+                      <p className="text-xs text-slate-500 leading-relaxed">{t('config.obsDefaultsHint')}</p>
+
                       <div className="space-y-2">
                         <label htmlFor="wizObsPassword" className="text-xs font-bold text-slate-400">{t('wizard.passwordLabel')}</label>
                         <input
@@ -1584,6 +1760,7 @@ function App(): JSX.Element {
                           placeholder={t('wizard.passwordPlaceholder')}
                           className="w-full bg-surface border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-accent-500/50 transition-all"
                         />
+                        <p className="text-xs text-slate-500 leading-relaxed">{t('wizard.passwordHint')}</p>
                       </div>
 
                       <div className="space-y-4">
@@ -1591,44 +1768,26 @@ function App(): JSX.Element {
                           <label htmlFor="wizObsSource" className="text-xs font-bold text-slate-400">{t('wizard.sourceLabel')}</label>
                           <div className="flex gap-2">
                             <div className="relative flex-1">
-                              {obsInputs && obsInputs.length > 0 ? (
-                                <select
-                                  id="wizObsSource"
-                                  value={config?.obsSourceName || ''}
-                                  onChange={(e) => setConfig({ ...config, obsSourceName: e.target.value })}
-                                  className="w-full bg-surface border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-accent-500/50 transition-all font-sans"
-                                >
-                                  <option value="" disabled>{t('wizard.selectSource')}</option>
-                                  {obsInputs.map((input: any) => (
-                                    <option key={input.inputName} value={input.inputName}>
-                                      {input.inputName} ({input.inputKind.replace('_', ' ')})
-                                    </option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <input
-                                  type="text"
-                                  value={config?.obsSourceName || ''}
-                                  onChange={(e) => setConfig({ ...config, obsSourceName: e.target.value })}
-                                  placeholder={t('wizard.sourcePlaceholder')}
-                                  className="w-full bg-surface border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-accent-500/50 transition-all"
-                                />
-                              )}
+                              {/* 角丸カスタムドロップダウン: 入力値の有無に関わらず全ソースを表示 */}
+                              <SourceSelect
+                                id="wizObsSource"
+                                value={config?.obsSourceName || ''}
+                                onChange={(v) => setConfig({ ...config, obsSourceName: v })}
+                                sources={(obsInputs ?? []) as { inputName: string; inputKind?: string }[]}
+                                placeholder={t('wizard.sourcePlaceholder')}
+                              />
                             </div>
                             <button
                               type="button"
                               onClick={async () => {
                                 setIsObsConnecting(true)
                                 try {
-                                  // @ts-ignore
                                   const result = await window.electron.ipcRenderer.invoke('obs-connect', config)
                                   if (result.success) {
-                                    // @ts-ignore
                                     const inputsResult = await window.electron.ipcRenderer.invoke('obs-get-inputs')
                                     if (inputsResult.success) setObsInputs(inputsResult.inputs)
 
                                     if (!config?.obsSourceName) {
-                                      // @ts-ignore
                                       const sourceResult = await window.electron.ipcRenderer.invoke('obs-find-best-source')
                                       if (sourceResult.success && sourceResult.sourceName) {
                                         setConfig({ ...config, obsSourceName: sourceResult.sourceName })
@@ -1862,16 +2021,58 @@ function App(): JSX.Element {
           </nav>
 
           <div className={cn("p-4 mt-auto", isSidebarCollapsed && "px-2")}>
-            <button
-              onClick={toggleLanguage}
-              className={cn(
-                "w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm transition-colors",
-                isSidebarCollapsed && "px-0"
-              )}
-            >
-              <Globe size={16} />
-              {!isSidebarCollapsed && t('app.languageToggle')}
-            </button>
+            {/* 言語セレクター: 角丸ピル型セグメント。layoutId によりハイライトが滑らかにスライドする */}
+            {!isSidebarCollapsed ? (
+              <div
+                role="radiogroup"
+                aria-label={t('language.select')}
+                title={t('language.select')}
+                className="relative flex items-center gap-1 w-full bg-slate-800/80 rounded-full p-1"
+              >
+                {LANGUAGE_OPTIONS.map((lang) => {
+                  const isActive = getCurrentLanguage() === lang.code
+                  return (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      role="radio"
+                      aria-checked={isActive}
+                      onClick={() => handleLanguageChange(lang.code)}
+                      className={cn(
+                        "relative flex-1 min-w-0 py-1.5 rounded-full text-xs font-semibold transition-colors duration-200 focus:outline-none cursor-pointer",
+                        isActive ? "text-white" : "text-slate-400 hover:text-white"
+                      )}
+                    >
+                      {isActive && (
+                        <motion.span
+                          layoutId="language-pill"
+                          className="absolute inset-0 bg-accent-600 rounded-full shadow-lg shadow-accent-900/40"
+                          transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                        />
+                      )}
+                      <span className="relative z-10 whitespace-nowrap tracking-wide">{lang.short}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              /* 折りたたみ時: 地球アイコンで次の言語へ順送り */
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.9 }}
+                whileHover={{ scale: 1.05 }}
+                onClick={() => {
+                  const order = LANGUAGE_OPTIONS.map(l => l.code)
+                  const idx = order.indexOf(getCurrentLanguage())
+                  handleLanguageChange(order[(idx + 1) % order.length])
+                }}
+                aria-label={t('language.select')}
+                title={`${t('language.select')} (${i18n.language})`}
+                className="w-full flex items-center justify-center px-0 py-2 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors focus:outline-none cursor-pointer"
+              >
+                <Globe size={16} />
+              </motion.button>
+            )}
           </div>
         </div>
 
@@ -1979,19 +2180,15 @@ function App(): JSX.Element {
                   <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-surface">
                     <div className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">
                       {typeof updateInfo.releaseNotes === 'string' ? (
-                        <div dangerouslySetInnerHTML={{
-                          __html: updateInfo.releaseNotes
-                            .replace(/\n/g, '<br/>')
-                            .replace(/### (.*)/g, '<h3 class="text-white font-bold text-lg mt-4 mb-2">$1</h3>')
-                            .replace(/## (.*)/g, '<h2 class="text-white font-bold text-xl mt-6 mb-3">$1</h2>')
-                            .replace(/- (.*)/g, '<div class="flex gap-2 my-1"><span class="text-accent-400">•</span><span>$1</span></div>')
-                        }} />
+                        /* リリースノートは外部(GitHub)由来のためHTMLとして解釈せず
+                           プレーンテキストのまま表示する（XSS防止） */
+                        updateInfo.releaseNotes
                       ) : Array.isArray(updateInfo.releaseNotes) ? (
                         <div className="space-y-6">
                           {updateInfo.releaseNotes.map((note: any, i: number) => (
                             <div key={i} className="border-b border-slate-800 pb-4 last:border-0">
                               {note.version && <div className="text-accent-400 font-bold mb-2">v{note.version}</div>}
-                              <div dangerouslySetInnerHTML={{ __html: note.note }} />
+                              <div className="whitespace-pre-wrap">{typeof note === 'string' ? note : note.note}</div>
                             </div>
                           ))}
                         </div>
@@ -2050,17 +2247,17 @@ function App(): JSX.Element {
                         </button>
                       )}
                       <button
-                        onClick={handleOpenOverlay}
+                        onClick={autoSetupObsOverlay}
                         className="glass-btn flex items-center gap-2"
                       >
-                        <ExternalLink size={20} />
-                        {t('operations.openOverlay')}
+                        <MonitorDown size={20} />
+                        {t('operations.autoAddOverlay')}
                       </button>
                     </div>
                   </header>
 
                   {/* Analysis Mode Selector */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t('config.analysisModeLabel')}</span>
                     <div className="flex gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-800">
                       <button
@@ -2088,6 +2285,61 @@ function App(): JSX.Element {
                         {t('config.analysisModeStandings')}
                       </button>
                     </div>
+
+                    {/* 標準モード(12人)時のみ: 解析対象ゲームを選択（校正プリセットの自動切替に使用） */}
+                    {config?.analysisMode !== 'standings24' && (
+                      <>
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">{t('config.standardGameLabel')}</span>
+                        <div className="flex gap-1 bg-slate-900/50 p-1 rounded-xl border border-slate-800">
+                          <button
+                            onClick={() => handleStandardGameChange('mk8dx')}
+                            disabled={status === 'loading'}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+                              (config?.standardGame ?? 'mk8dx') !== 'mkworld'
+                                ? "bg-blue-600 text-white shadow-lg"
+                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                            )}
+                          >
+                            {t('config.gameMk8dx')}
+                          </button>
+                          <button
+                            onClick={() => handleStandardGameChange('mkworld')}
+                            disabled={status === 'loading'}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-sm font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed",
+                              config?.standardGame === 'mkworld'
+                                ? "bg-red-600 text-white shadow-lg"
+                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                            )}
+                          >
+                            {t('config.gameMkw')}
+                          </button>
+                        </div>
+                      </>
+                    )}
+
+                    {/* レース番号トラッカー: 全チーム合計点から現在のレース数を推定 */}
+                    {raceTracker && raceTracker.totalPoints > 0 && (
+                      <div
+                        className="ml-auto flex items-center gap-2 bg-slate-900/50 border border-slate-800 rounded-full px-3 py-1.5 cursor-default"
+                        title={raceTracker.isEstimated ? t('raceTracker.estimatedHint') : undefined}
+                      >
+                        <Flag size={14} className="text-accent-400 shrink-0" />
+                        <span className="text-sm font-bold text-white whitespace-nowrap">
+                          {t('raceTracker.race', { race: raceTracker.raceNum })}
+                        </span>
+                        <span className="text-slate-500">·</span>
+                        <span className="text-xs text-slate-300 whitespace-nowrap">
+                          {t('raceTracker.remaining', { n: raceTracker.remaining })}
+                        </span>
+                        {raceTracker.isEstimated && (
+                          <span className="text-[10px] font-bold uppercase tracking-wide text-amber-400 bg-amber-400/10 border border-amber-400/30 rounded px-1 py-0.5 whitespace-nowrap">
+                            {t('raceTracker.estimated')}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -2112,13 +2364,39 @@ function App(): JSX.Element {
                         <div className="p-3 bg-accent-500/10 rounded-xl group-hover:scale-110 transition-transform">
                           <Monitor className="text-accent-500" size={24} />
                         </div>
-                        {config?.obsIp ? (
-                          <div className="flex items-center gap-1.5 bg-accent-500/10 px-2.5 py-1 rounded-full">
-                            <div className="w-1.5 h-1.5 bg-accent-500 rounded-full dot-pulse-success" />
-                            <span className="text-xs font-bold text-accent-500 uppercase tracking-tight">Connected</span>
+                        {obsDetail.reconnecting ? (
+                          /* 自動再接続中: 琥珀色で点滅表示 */
+                          <div
+                            className="flex items-center gap-1.5 bg-amber-500/10 px-2.5 py-1 rounded-full animate-pulse"
+                          title={t('obsQuality.attempt', { n: obsDetail.attempt })}
+                          >
+                            <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                            <span className="text-xs font-bold text-amber-500 uppercase tracking-tight whitespace-nowrap">
+                              {t('obsQuality.reconnecting')}
+                            </span>
                           </div>
+                        ) : config?.obsIp ? (
+                          obsStatus ? (
+                            /* 接続中: RTTで品質バッジを色分け（ツールチップにレイテンシ表示） */
+                            <div
+                              className="flex items-center gap-1.5 bg-accent-500/10 px-2.5 py-1 rounded-full"
+                              title={`${t('obsQuality.latency', { ms: obsDetail.latencyMs ?? '—' })}`}
+                            >
+                              <div className={cn("w-1.5 h-1.5 rounded-full dot-pulse-success", obsQualityDotClass)} />
+                              <span className={cn("text-xs font-bold uppercase tracking-tight whitespace-nowrap", obsQualityTextClass)}>
+                                {obsQualityKey}
+                                {obsDetail.latencyMs != null ? ` · ${obsDetail.latencyMs}ms` : ''}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs font-bold text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full uppercase tracking-tight">
+                              {t('obsQuality.disconnected')}
+                            </span>
+                          )
                         ) : (
-                          <span className="text-xs font-bold text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full uppercase tracking-tight">Disconnected</span>
+                          <span className="text-xs font-bold text-slate-400 bg-slate-800 px-2.5 py-1 rounded-full uppercase tracking-tight">
+                            {t('dash.notSet')}
+                          </span>
                         )}
                       </div>
                       <h3 className="text-slate-400 text-sm font-medium mb-1">{t('dash.obsConnection')}</h3>
@@ -2157,7 +2435,6 @@ function App(): JSX.Element {
                       <div className="p-6 border-b border-slate-800 flex justify-between items-center">
                         <h3 className="font-bold text-lg flex items-center gap-2">
                           <BarChart3 size={20} className="text-accent-500" />
-                          <BarChart3 size={20} className="text-accent-500" />
                           {t('dash.currentScores')}
                         </h3>
                         <div className="flex gap-2">
@@ -2168,7 +2445,8 @@ function App(): JSX.Element {
                               navigator.clipboard.writeText(text);
                               addLog(t('log.rankCopied'), 'success');
                               setIsCopied(true);
-                              setTimeout(() => setIsCopied(false), 2000);
+                              if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+                              copiedTimerRef.current = setTimeout(() => setIsCopied(false), 2000);
                             }}
                             className={cn(
                               "text-sm flex items-center gap-1 transition-all mr-2 px-2 py-1 rounded-lg",
@@ -2234,7 +2512,7 @@ function App(): JSX.Element {
                             <AnimatePresence mode="popLayout">
                               {(isEditing ? editingScores : [...scores].sort((a, b) => b.score - a.score)).length > 0 ? (isEditing ? editingScores : [...scores].sort((a, b) => b.score - a.score)).map((team, i) => (
                                 <ScoreItem
-                                  key={team.name || team.team || i}
+                                  key={isEditing ? `edit-${i}` : (team.name || team.team || i)}
                                   team={team}
                                   index={i}
                                   isEditing={isEditing}
@@ -2569,8 +2847,8 @@ function App(): JSX.Element {
                       <div className="glass-panel rounded-2xl p-8 border-none bg-slate-800/50">
 
                         <form
-                          onSubmit={handleSaveConfig}
-                          onChange={handleOverlayFormChange}
+                          onChange={handleAutoSaveChange}
+                          onSubmit={(e) => e.preventDefault()}
                           className="space-y-6"
                         >
                           {/* GENERAL TAB */}
@@ -2619,12 +2897,13 @@ function App(): JSX.Element {
                                     type="button"
                                     onClick={() => {
                                       navigator.clipboard.writeText(`http://localhost:${serverPort}/`)
-                                      setIsCopied(true)
-                                      setTimeout(() => setIsCopied(false), 2000)
+                                      setIsCopiedUrl(true)
+                                      if (copiedUrlTimerRef.current) clearTimeout(copiedUrlTimerRef.current)
+                                      copiedUrlTimerRef.current = setTimeout(() => setIsCopiedUrl(false), 2000)
                                     }}
                                     className="text-slate-400 hover:text-white transition-colors"
                                   >
-                                    {isCopied ? <CheckCircle size={16} className="text-green-500" /> : <Copy size={16} />}
+                                    {isCopiedUrl ? <CheckCircle size={16} className="text-green-500" /> : <Copy size={16} />}
                                   </button>
                                 </div>
                               </div>
@@ -2654,8 +2933,10 @@ function App(): JSX.Element {
                                   }}
                                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-accent-500/50 transition-all font-sans"
                                 >
+                                  {/* NOTE: 「マリオカートWii風(mkw)」テーマは選択肢から除外中。
+                                      実装は public/overlay/index.html と config の型に保持しており、
+                                      保存済みの 'mkw' は config-manager 側で 'default' に正規化される。 */}
                                   <option value="default">{t('overlayUi.themeDefault')}</option>
-                                  <option value="mkw">{t('overlayUi.themeMKW')}</option>
                                 </select>
                                 <p className="text-xs text-slate-400">{t('overlayUi.themeDesc')}</p>
                               </div>
@@ -2786,14 +3067,17 @@ function App(): JSX.Element {
                             </motion.div>
                           )}
 
-                          <div className="pt-4 border-t border-slate-700/50 mt-6" ref={saveButtonRef}>
-                            <button
-                              type="submit"
-                              className="w-full bg-accent-600 hover:bg-accent-500 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-accent-900/20 active:scale-95 flex justify-center items-center gap-2"
+                          {/* 自動保存インジケータ（保存ボタンは廃止） */}
+                          <div className="pt-4 border-t border-slate-700/50 mt-6 h-12 flex items-center justify-center">
+                            <span
+                              className={cn(
+                                "flex items-center gap-1.5 text-xs font-bold text-emerald-400 transition-opacity duration-300",
+                                showSavedTick ? "opacity-100" : "opacity-0"
+                              )}
                             >
-                              <Save size={18} />
-                              {t('config.saveButton')}
-                            </button>
+                              <CheckCircle size={14} />
+                              {t('messages.configSaved')}
+                            </span>
                           </div>
                         </form>
                       </div>
@@ -2874,7 +3158,7 @@ function App(): JSX.Element {
                     ))}
                   </div>
 
-                  <form onSubmit={handleSaveConfig} className="space-y-8">
+                  <form onChange={handleAutoSaveChange} onSubmit={(e) => e.preventDefault()} className="space-y-8">
 
                     {/* SYSTEM SETTINGS */}
                     {settingsTab === 'system' && (
@@ -2996,6 +3280,8 @@ function App(): JSX.Element {
                               className="w-full bg-surface border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-accent-500/50 transition-all font-mono"
                             />
                           </div>
+                          {/* 既定値案内: 特別な理由がなければデフォルトのままで良い */}
+                          <p className="text-xs text-slate-500 leading-relaxed md:col-span-2 self-end">{t('config.obsDefaultsHint')}</p>
                           <div className="space-y-2 md:col-span-2">
                             <label className="text-sm font-medium text-slate-400">{t('config.obsPassword')}</label>
                             <input
@@ -3005,6 +3291,7 @@ function App(): JSX.Element {
                               placeholder="OBS WebSocket Password"
                               className="w-full bg-surface border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-accent-500/50 transition-all font-mono"
                             />
+                            <p className="text-xs text-slate-500 leading-relaxed">{t('config.obsPasswordHint')}</p>
                           </div>
                         </div>
 
@@ -3015,24 +3302,13 @@ function App(): JSX.Element {
                               <span className="text-xs text-yellow-500 border border-yellow-500/30 px-1 rounded bg-yellow-500/10">{t('common.important')}</span>
                             </label>
                             <div className="relative">
-                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Search size={16} className="text-slate-400" />
-                              </div>
-                              <input
+                              {/* 角丸カスタムドロップダウン: 入力値の有無に関わらず全ソースを表示 */}
+                              <SourceSelect
                                 name="obsSourceName"
-                                list="obs-source-list"
-                                type="text"
                                 defaultValue={config?.obsSourceName}
+                                sources={(obsInputs ?? []) as { inputName: string; inputKind?: string }[]}
                                 placeholder={t('config.obsSourceNamePlaceholder')}
-                                className="w-full bg-surface border border-slate-700 rounded-xl px-4 py-3 pl-10 text-white focus:outline-none focus:ring-2 focus:ring-accent-500/50 transition-all"
                               />
-                              <datalist id="obs-source-list">
-                                {obsInputs && obsInputs.map((input: any) => (
-                                  <option key={input.inputName} value={input.inputName}>
-                                    {input.inputKind}
-                                  </option>
-                                ))}
-                              </datalist>
                             </div>
                             {!obsStatus && (
                               <p className="text-xs text-slate-400 mt-1">
@@ -3120,20 +3396,31 @@ function App(): JSX.Element {
                           <p className="text-xs text-slate-400">{t('config.analysisModeHelp')}</p>
                         </div>
 
-                        {config?.analysisMode === 'standings24' && (
-                          <StandingsCalibrationPanel config={config} setConfig={setConfig} />
-                        )}
+                        {/* 校正プリセットは解析コンテキスト(モード×ゲーム)ごとに管理されるため
+                            標準モード中も常時表示する（編集対象はアクティブなコンテキストに連動） */}
+                        <StandingsCalibrationPanel config={config} setConfig={setConfig} />
 
                         <div className="space-y-4">
                           <div className="space-y-2">
                             <label className="text-sm font-medium text-slate-400">{t('config.groqApiKey')}</label>
-                            <input
-                              name="groqApiKey"
-                              type="password"
-                              defaultValue={config?.groqApiKey}
-                              placeholder={t('config.groqApiKeyPlaceholder')}
-                              className="w-full bg-surface border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all font-mono"
-                            />
+                            <div className="flex gap-2">
+                              <input
+                                id="settingsGroqApiKey"
+                                name="groqApiKey"
+                                type="password"
+                                defaultValue={config?.groqApiKey}
+                                placeholder={t('config.groqApiKeyPlaceholder')}
+                                className="flex-1 min-w-0 bg-surface border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500/50 transition-all font-mono"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => pasteIntoInput('settingsGroqApiKey')}
+                                className="flex items-center gap-1.5 text-xs px-3 rounded-xl border border-slate-700 bg-slate-800/50 text-slate-300 hover:bg-slate-800 transition-all whitespace-nowrap"
+                              >
+                                <Clipboard size={14} />
+                                {t('config.pasteApiKey')}
+                              </button>
+                            </div>
                             <p className="text-xs text-slate-400 italic">
                               {t('settingsAi.qwenNote')}
                             </p>
@@ -3198,14 +3485,17 @@ function App(): JSX.Element {
                       </motion.section>
                     )}
 
-                    <div className="flex justify-end pt-4 border-t border-slate-700/30">
-                      <button
-                        type="submit"
-                        className="bg-accent-600 hover:bg-accent-500 text-white px-10 py-4 rounded-xl font-bold transition-all shadow-lg shadow-accent-900/40 active:scale-95 flex items-center gap-2"
+                    {/* 自動保存インジケータ（保存ボタンは廃止） */}
+                    <div className="flex justify-end pt-4 border-t border-slate-700/30 h-14 items-center">
+                      <span
+                        className={cn(
+                          "flex items-center gap-1.5 text-xs font-bold text-emerald-400 transition-opacity duration-300",
+                          showSavedTick ? "opacity-100" : "opacity-0"
+                        )}
                       >
-                        <Save size={20} />
-                        {t('config.saveButton')}
-                      </button>
+                        <CheckCircle size={14} />
+                        {t('messages.configSaved')}
+                      </span>
                     </div>
                   </form>
                 </motion.div>
@@ -3235,8 +3525,13 @@ function App(): JSX.Element {
                         onClick={() => window.electron.ipcRenderer.invoke('open-external', 'https://github.com/eito54/Grosoq')}
                         className="bg-[#24292e] hover:bg-[#2f363d] text-white p-4 rounded-xl border border-slate-700 hover:border-slate-500 transition-all group flex flex-col items-center gap-3 shadow-lg"
                       >
-                        <div className="p-3 bg-white/10 rounded-full group-hover:scale-110 transition-transform">
-                          <Github size={24} />
+                        <div className="p-1.5 bg-white/10 rounded-full group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                          <img
+                            src={githubIcon}
+                            alt="GitHub"
+                            draggable={false}
+                            className="w-11 h-11 rounded-full object-cover ring-1 ring-white/25"
+                          />
                         </div>
                         <div className="text-center">
                           <p className="font-bold text-sm">GitHub</p>
@@ -3249,8 +3544,13 @@ function App(): JSX.Element {
                         onClick={() => window.electron.ipcRenderer.invoke('open-external', 'https://x.com/eiteen05')}
                         className="bg-black hover:bg-slate-900 text-white p-4 rounded-xl border border-slate-700 hover:border-slate-500 transition-all group flex flex-col items-center gap-3 shadow-lg"
                       >
-                        <div className="p-3 bg-white/10 rounded-full group-hover:scale-110 transition-transform">
-                          <Twitter size={24} />
+                        <div className="p-1.5 bg-white/10 rounded-full group-hover:scale-110 group-hover:-rotate-3 transition-transform">
+                          <img
+                            src={twitterIcon}
+                            alt="X (Twitter)"
+                            draggable={false}
+                            className="w-11 h-11 rounded-full object-cover ring-1 ring-white/25"
+                          />
                         </div>
                         <div className="text-center">
                           <p className="font-bold text-sm">X (Twitter)</p>
@@ -3302,9 +3602,6 @@ function App(): JSX.Element {
             }
           }}
           type={slotModalType}
-          name={slotNameInput}
-          setName={setSlotNameInput}
-          slotId={pendingSlotId}
         />
 
         <ConfirmModal

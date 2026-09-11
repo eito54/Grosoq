@@ -7,18 +7,12 @@ export function SlotModal({
     isOpen,
     onClose,
     onConfirm,
-    type,
-    name,
-    setName,
-    slotId
+    type
 }: {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: () => void;
     type: 'load' | 'add' | 'delete';
-    name: string;
-    setName: (name: string) => void;
-    slotId: number | null;
 }) {
     const { t } = useTranslation()
 
