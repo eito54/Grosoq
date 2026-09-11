@@ -57,3 +57,4 @@ gui/config.json
 
 # Tool artifacts
 .gstack/
+.freebuff/
