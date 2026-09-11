@@ -23,6 +23,17 @@ export function registerIpcHandlers(
     }
   })
 
+  // 接続品質・再接続状況を含む詳細ステータスをレンダラへ通知
+  obsManager.on('detail-change', (detail) => {
+    const mainWindow = getMainWindow()
+    if (mainWindow) {
+      mainWindow.webContents.send('obs-status-detail', detail)
+    }
+  })
+
+  // レンダラからのポーリング用: 詳細ステータス取得
+  ipcMain.handle('obs-status-detail', () => obsManager.getDetailedStatus())
+
   // Configure auto-updater
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = true
@@ -131,56 +142,61 @@ export function registerIpcHandlers(
   })
 
   ipcMain.handle('check-whats-new', async () => {
-    const config = configManager.getConfig()
-    const currentVersion = app.getVersion()
+    try {
+      const config = configManager.getConfig()
+      const currentVersion = app.getVersion()
 
-    // バージョンが上がっていたら、WHAT'S NEWを表示対象とする
-    if (config.lastSeenVersion && config.lastSeenVersion !== currentVersion) {
-      let notes = config.lastReleaseNotes
+      // バージョンが上がっていたら、WHAT'S NEWを表示対象とする
+      if (config.lastSeenVersion && config.lastSeenVersion !== currentVersion) {
+        let notes = config.lastReleaseNotes
 
-      // リリースノートが空の場合、GitHub APIから取得を試みる
-      if (!notes) {
-        console.log(`Release notes missing for v${currentVersion}, fetching from GitHub...`)
+        // リリースノートが空の場合、GitHub APIから取得を試みる
+        if (!notes) {
+          console.log(`Release notes missing for v${currentVersion}, fetching from GitHub...`)
 
-        // タグ名の候補（vあり / vなし / そのまま）
-        const tagCandidates = [`v${currentVersion}`, currentVersion]
+          // タグ名の候補（vあり / vなし / そのまま）
+          const tagCandidates = [`v${currentVersion}`, currentVersion]
 
-        for (const tag of tagCandidates) {
-          try {
-            console.log(`Trying to fetch release notes for tag: ${tag}`)
-            const release = await makeHttpRequest(`https://api.github.com/repos/eito54/Grosoq/releases/tags/${tag}`, {
-              headers: { 'User-Agent': 'Grosoq' }
-            })
+          for (const tag of tagCandidates) {
+            try {
+              console.log(`Trying to fetch release notes for tag: ${tag}`)
+              const release = await makeHttpRequest(`https://api.github.com/repos/eito54/Grosoq/releases/tags/${tag}`, {
+                headers: { 'User-Agent': 'Grosoq' }
+              })
 
-            if (release && release.body) {
-              notes = release.body
-              console.log(`Successfully fetched notes for tag: ${tag}`)
-              // 次回のために保存
-              config.lastReleaseNotes = notes
-              await configManager.saveConfig(config)
-              break // 取得できたら終了
+              if (release && release.body) {
+                notes = release.body
+                console.log(`Successfully fetched notes for tag: ${tag}`)
+                // 次回のために保存
+                config.lastReleaseNotes = notes
+                await configManager.saveConfig(config)
+                break // 取得できたら終了
+              }
+            } catch (error) {
+              console.error(`Failed to fetch release notes for tag ${tag}:`, error)
             }
-          } catch (error) {
-            console.error(`Failed to fetch release notes for tag ${tag}:`, error)
           }
+        }
+
+        return {
+          show: true,
+          version: currentVersion,
+          notes: notes
         }
       }
 
-      return {
-        show: true,
-        version: currentVersion,
-        notes: notes
+      // 初回起動時やバージョンが変わっていない時は表示しない
+      // ただし、lastSeenVersionを保存しておく
+      if (!config.lastSeenVersion) {
+        config.lastSeenVersion = currentVersion
+        await configManager.saveConfig(config)
       }
-    }
 
-    // 初回起動時やバージョンが変わっていない時は表示しない
-    // ただし、lastSeenVersionを保存しておく
-    if (!config.lastSeenVersion) {
-      config.lastSeenVersion = currentVersion
-      await configManager.saveConfig(config)
+      return { show: false }
+    } catch (error: any) {
+      console.error('check-whats-new error:', error)
+      return { show: false, error: error?.message }
     }
-
-    return { show: false }
   })
 
   ipcMain.handle('mark-whats-new-seen', async () => {
@@ -281,7 +297,11 @@ export function registerIpcHandlers(
 
   ipcMain.handle('obs-auto-setup', async () => {
     try {
-      await obsManager.autoSetupOverlay(getServerPort())
+      const port = getServerPort()
+      if (!port) {
+        return { success: false, error: '内蔵サーバーが起動していないためオーバーレイを設定できません' }
+      }
+      await obsManager.autoSetupOverlay(port)
       return { success: true }
     } catch (error: any) {
       return { success: false, error: error.message }
@@ -297,17 +317,30 @@ export function registerIpcHandlers(
 
       const inputs = await obsManager.getInputList()
       const browserSources = inputs.filter(i => i.inputKind === 'browser_source')
-      const port = getServerPort().toString()
+      const port = getServerPort()
+      if (!port) {
+        return { success: false, error: '内蔵サーバーが起動していません' }
+      }
 
       for (const source of browserSources) {
         const inputName = source.inputName as string
         const settings = await obsManager.call('GetInputSettings', { inputName })
         const url = settings.inputSettings.url as string
-        if (url && (url.includes('localhost') || url.includes('127.0.0.1')) && url.includes(port)) {
-          await obsManager.call('PressInputPropertiesButton', {
-            inputName,
-            propertyName: 'refreshnocache'
-          })
+        if (url) {
+          // サブストリング一致だとポート 30011 などが 3001 に誤マッチするため、
+          // URLをパースしてポートを厳密比較する
+          try {
+            const parsed = new URL(url)
+            const isLocalHost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
+            if (isLocalHost && parsed.port === String(port)) {
+              await obsManager.call('PressInputPropertiesButton', {
+                inputName,
+                propertyName: 'refreshnocache'
+              })
+            }
+          } catch {
+            // 解析不能なURLは無視
+          }
         }
       }
       return { success: true, message: 'OBSブラウザソースを再読み込みしました' }

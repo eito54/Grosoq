@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, globalShortcut } from 'electron'
+import { app, shell, dialog, BrowserWindow, ipcMain, globalShortcut } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../assets/logo.jpeg?asset'
@@ -54,7 +54,11 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    // http/httpsのみ許可（file:// やカスタムプロトコル経由の任意実行を防ぐ）。
+    // IPC側の 'open-external' ハンドラと同じガード。
+    if (/^https?:\/\//i.test(details.url)) {
+      shell.openExternal(details.url)
+    }
     return { action: 'deny' }
   })
 
@@ -81,23 +85,30 @@ app.whenReady().then(async () => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // 常に開発者ツールを開けるように設定（デバッグ中のみ）
-  globalShortcut.register('CommandOrControl+Shift+I', () => {
-    const focusedWindow = BrowserWindow.getFocusedWindow()
-    if (focusedWindow) {
-      focusedWindow.webContents.toggleDevTools()
-    }
-  })
+  // 開発時のみ開発者ツールを開けるように設定
+  if (is.dev) {
+    globalShortcut.register('CommandOrControl+Shift+I', () => {
+      const focusedWindow = BrowserWindow.getFocusedWindow()
+      if (focusedWindow) {
+        focusedWindow.webContents.toggleDevTools()
+      }
+    })
+  }
 
   // Load config
   await configManager.loadConfig()
 
   // Start server (ポートが使用中の場合は代替ポートを探す)
+  let serverStarted = false
   try {
     await startServerWithFallback(serverPort)
+    serverStarted = true
     console.log(`[Main] Embedded server started on port ${serverPort}`)
   } catch (error) {
     console.error(`[Main] Failed to start embedded server:`, error)
+    // 起動失敗を握り潰さない: serverPort=0 にして OBS 自動セットアップ等が
+    // 存在しないサーバーを参照しないようにし、ユーザーに明示的に通知する
+    serverPort = 0
   }
 
   // Register IPC handlers
@@ -109,6 +120,13 @@ app.whenReady().then(async () => {
   )
 
   createWindow()
+
+  if (!serverStarted) {
+    dialog.showErrorBox(
+      'Grosoq - サーバー起動失敗',
+      '内蔵サーバーの起動に失敗しました。オーバーレイやスコア保存は利用できません。\nポート 3001-3010 を使用しているアプリケーションを確認して再起動してください。'
+    )
+  }
 
   // Register global shortcuts
   globalShortcut.register('F1', () => {

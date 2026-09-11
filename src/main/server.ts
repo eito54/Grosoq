@@ -73,10 +73,18 @@ export class EmbeddedServer {
     }
   }
 
-  /** JSONファイルを書く（ディレクトリも自動作成） */
+  /** JSONファイルを書く（ディレクトリも自動作成）。tmp→renameでアトミックに書く */
   private async writeJson(filePath: string, data: unknown): Promise<void> {
     await fsp.mkdir(path.dirname(filePath), { recursive: true })
-    await fsp.writeFile(filePath, JSON.stringify(data, null, 2))
+    const tmpPath = `${filePath}.tmp`
+    await fsp.writeFile(tmpPath, JSON.stringify(data, null, 2))
+    // Windows では rename が既存ファイルを置換できないことがあるため先に削除
+    try {
+      await fsp.rename(tmpPath, filePath)
+    } catch {
+      await fsp.rm(filePath, { force: true })
+      await fsp.rename(tmpPath, filePath)
+    }
   }
 
   private setupMiddleware(): void {
@@ -97,13 +105,41 @@ export class EmbeddedServer {
     // スコアデータは小さいため十分な上限。巨大ボディでのDoSを避けるため50mbから引き下げ。
     this.expressApp.use(express.json({ limit: '2mb' }))
 
+    this.expressApp.disable('x-powered-by')
+
+    // DNSリバンディング対策: Hostヘッダーが localhost 系のリクエストのみ受け付ける。
+    // （悪意あるドメインが 127.0.0.1 に解決された場合、ブラウザからのリクエストは
+    // 同一オリジン扱いになってしまうため、Origin検査だけでは防げない）
+    const HOST_RE = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i
+    this.expressApp.use((req: Request, res: Response, next: NextFunction) => {
+      const host = req.headers.host || ''
+      if (!HOST_RE.test(host)) {
+        res.status(403).json({ error: 'Forbidden host' })
+        return
+      }
+      next()
+    })
+
     // オリジン制限付きCORS。
     // サーバー自体がlocalhostバインドのため外部から到達できないが、
     // 同一マシン上の悪意あるWebページがブラウザ経由でAPIを叩くのを防ぐ（ドラッグバイ防御）。
     this.expressApp.use((req: Request, res: Response, next: NextFunction) => {
       const origin = req.headers.origin
-      // Electron本体(file:// → "null")、同一オリジン(origin無し)、localhost系のみ許可
-      if (origin === undefined || origin === 'null' || ALLOWED_ORIGIN_RE.test(origin)) {
+      const originAllowed = origin === undefined || ALLOWED_ORIGIN_RE.test(origin)
+      // 本番パッケージのレンダラーは file:// (Origin: null) から叩くため 'null' も許可。
+      // ただしブラウザのfile://ページも 'null' になり得るので、状態変更リクエストでは
+      // 可能な限り実オリジンを要求する（下述の403判定は 'null' を除外しない）。
+      const method = req.method.toUpperCase()
+      const isStateChange = method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS'
+
+      if (isStateChange && origin !== undefined && !(origin === 'null' || ALLOWED_ORIGIN_RE.test(origin))) {
+        // プリフライトを発生させない simple リクエストでのブラインド CSRF を防ぐため、
+        // 許可外オリジンの状態変更リクエストは実行前に拒否する
+        res.sendStatus(403)
+        return
+      }
+
+      if (origin === undefined || origin === 'null' || originAllowed) {
         res.header('Access-Control-Allow-Origin', origin === undefined ? '*' : origin)
         res.header('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
         res.header('Access-Control-Allow-Headers', 'Content-Type')
@@ -450,8 +486,15 @@ export class EmbeddedServer {
 
   public stop(): Promise<void> {
     return new Promise((resolve) => {
-      if (this.sseCleanupInterval) clearInterval(this.sseCleanupInterval)
+      if (this.sseCleanupInterval) {
+        clearInterval(this.sseCleanupInterval)
+        this.sseCleanupInterval = null
+      }
       if (this.server) {
+        // SSE の keep-alive 接続が生きていると close() のコールバックが
+        // 永久に発火しないため、開いている接続を強制終了してから閉じる
+        this.server.closeAllConnections()
+        this.sseClients.clear()
         this.server.close(() => {
           console.log('Embedded server stopped')
           resolve()
