@@ -1,6 +1,7 @@
 import fs from 'fs'
+import fsp from 'fs/promises'
 import path from 'path'
-import { app } from 'electron'
+import { app, safeStorage } from 'electron'
 
 export interface OverlayColors {
   /** スコア加算時のフラッシュ/カウントアップの光の色 (#rrggbb) */
@@ -29,6 +30,34 @@ export interface StandingsCalibration {
   endY: number
 }
 
+/**
+ * 校正プリセット（3枠固定）。
+ * キーは解析コンテキストと対応する:
+ *   mk8dx = 標準モード×MK8DX / mkw12 = 標準モード×MK World / mkw24 = 24人スタンド×MK World
+ */
+export interface CalibrationPresets {
+  mk8dx: StandingsCalibration | null
+  mkw12: StandingsCalibration | null
+  mkw24: StandingsCalibration | null
+}
+
+/** 現在の解析コンテキスト（モード×対象ゲーム）に対応するプリセットキー */
+export function getCalibrationContextKey(cfg: Pick<Config, 'analysisMode' | 'standardGame'>): keyof CalibrationPresets {
+  if (cfg.analysisMode === 'standings24') return 'mkw24'
+  return cfg.standardGame === 'mkworld' ? 'mkw12' : 'mk8dx'
+}
+
+/**
+ * 解析時に使用すべき校正値を解決する。
+ * 優先順位: 現在のコンテキストの保存済みプリセット → 従来のスタンドアロン校正值(フォールバック)。
+ * レンダラ側での状態同期を行わないため、UI編集値がバックグラウンドで破壊されることはない。
+ */
+export function resolveStandingsCalibration(cfg: Config): StandingsCalibration {
+  const key = getCalibrationContextKey(cfg)
+  const preset = cfg.standingsCalibrationPresets?.[key]
+  return preset ?? cfg.standingsCalibration
+}
+
 export interface Config {
   obsIp: string
   obsPort: number
@@ -46,8 +75,12 @@ export interface Config {
   overlayTheme: 'default' | 'mkw'
   overlayColors: OverlayColors
   overlayAnimations: OverlayAnimations
+  /** スコア設定(standard12)の対象ゲーム。校正プリセット(mk8dx/mkw12)の自動切替に使用 */
+  standardGame: 'mk8dx' | 'mkworld'
   /** スタンド24モードの列ごとクロップ範囲（全幅/全高に対する%）。列A=左列, 列B=右列 */
   standingsCalibration: StandingsCalibration
+  /** ゲーム別の校正プリセット（3枠固定）。詳細は getCalibrationPresetKey() 参照 */
+  standingsCalibrationPresets: CalibrationPresets
   scoreSettings: {
     maxRaces: number
     points: number[]
@@ -98,7 +131,9 @@ export class ConfigManager {
       this.fallbackConfigPath = this.configPath
       this.isElectron = false
     }
-    void this.loadConfig()
+    // loadConfig() は起動シーケンス (index.ts) からのみ呼び出す。
+    // コンストラクタで二重に走らせると、初回起動時にデフォルト保存が
+    // 競合して書き込みがインターリーブする可能性がある。
   }
 
   getDefaultConfig(): Config {
@@ -109,6 +144,8 @@ export class ConfigManager {
       obsSourceName: '映像キャプチャデバイス',
       aiProvider: 'groq',
       analysisMode: 'standard12',
+      /** 標準モードでの解析対象ゲーム（校正プリセットの自動選択に使用） */
+      standardGame: 'mk8dx',
       groqApiKey: '',
       theme: 'light',
       showRemainingRaces: true,
@@ -137,6 +174,12 @@ export class ConfigManager {
         startY: 0,
         endY: 100
       },
+      standingsCalibrationPresets: {
+        // 既定では全プリセット未保存（null）。保存すると実レイアウト値が入る
+        mk8dx: null,
+        mkw12: null,
+        mkw24: null
+      },
       scoreSettings: {
         maxRaces: 12,
         points: [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
@@ -149,13 +192,42 @@ export class ConfigManager {
     return this.currentConfig
   }
 
+  /**
+   * 設定JSONをディスクに書く形式にシリアライズする。
+   * safeStorage が使える環境では APIキー/OBSパスワードを含む設定全体を
+   * OSの資格情報ストレージ（Windows では DPAPI）で暗文化して保存する。
+   * 使えない環境（一部Linux）では従来通りプレーンJSONで保存する。
+   */
+  private encodeConfig(config: Config): string {
+    const json = JSON.stringify(config, null, 2)
+    try {
+      if (this.isElectron && safeStorage.isEncryptionAvailable()) {
+        const encrypted = safeStorage.encryptString(json).toString('base64')
+        return JSON.stringify({ __enc: 'v1', data: encrypted })
+      }
+    } catch (error) {
+      console.error('Config encryption failed, falling back to plaintext:', error)
+    }
+    return json
+  }
+
+  /** 読み込んだJSON文字列を復号して設定オブジェクトに変換する（プレーンJSONもそのまま受理） */
+  private decodeConfig(raw: string): Partial<Config> {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object' && parsed.__enc === 'v1' && typeof parsed.data === 'string') {
+      const json = safeStorage.decryptString(Buffer.from(parsed.data, 'base64'))
+      return JSON.parse(json) as Partial<Config>
+    }
+    return parsed as Partial<Config>
+  }
+
   async loadConfig(): Promise<Config> {
     try {
       let stored: Partial<Config> | null = null
 
       if (fs.existsSync(this.configPath)) {
         try {
-          stored = JSON.parse(fs.readFileSync(this.configPath, 'utf8'))
+          stored = this.decodeConfig(fs.readFileSync(this.configPath, 'utf8'))
         } catch (parseError) {
           console.error('Error parsing config from primary path:', parseError)
         }
@@ -163,7 +235,7 @@ export class ConfigManager {
 
       if (!stored && this.fallbackConfigPath !== this.configPath && fs.existsSync(this.fallbackConfigPath)) {
         try {
-          stored = JSON.parse(fs.readFileSync(this.fallbackConfigPath, 'utf8'))
+          stored = this.decodeConfig(fs.readFileSync(this.fallbackConfigPath, 'utf8'))
           if (this.isElectron && stored) {
             await this.saveConfig(stored as Config)
           }
@@ -175,6 +247,12 @@ export class ConfigManager {
       // 深いマージにより、ネストした設定(overlayColors等)の一部だけが
       // ディスクに存在する場合でもデフォルト値で補完される
       this.currentConfig = deepMerge(this.getDefaultConfig(), stored)
+      // 「マリオカートWii風(mkw)」テーマは完成度の観点から選択肢から一時除外中。
+      // オーバーレイ側の実装(public/overlay/index.html)と型は削除せず保持しており、
+      // 保存済みの 'mkw' はデフォルトへ正規化してユーザーが選択不可の値に固定されないようにする。
+      if (this.currentConfig.overlayTheme !== 'default') {
+        this.currentConfig.overlayTheme = 'default'
+      }
       if (!stored) {
         await this.saveConfig(this.currentConfig)
       }
@@ -186,12 +264,36 @@ export class ConfigManager {
     }
   }
 
+  /** 保存要求の直列化キュー。並列保存でtmpリネームが競合しENOENTになるのを防ぐ */
+  private saveQueue: Promise<void> = Promise.resolve()
+
   /** 部分的な設定オブジェクトを受け取り、デフォルトと深くマージして保存する */
   async saveConfig(config: Partial<Config>): Promise<void> {
+    // 自動保存(デバウンス)・モード切替・校正パネルなど複数経路からの保存が
+    // ほぼ同時に来ても、書き込み→リネームを必ず1つずつ実行させる
+    const run = this.saveQueue.then(() => this.doSaveConfig(config))
+    // キュー自体は1件の失敗で止めない（次の保存は継続）
+    this.saveQueue = run.catch(() => {})
+    return run
+  }
+
+  private async doSaveConfig(config: Partial<Config>): Promise<void> {
     try {
       const merged = deepMerge(this.currentConfig, config)
       this.currentConfig = merged
-      await fs.promises.writeFile(this.configPath, JSON.stringify(merged, null, 2))
+      // アトミック書き込み: tmp に書いてから rename（途中クラッシュでの破損防止）
+      await fsp.mkdir(path.dirname(this.configPath), { recursive: true })
+      // tmpファイル名は呼び出しごとにユニークにする（共有tmp名は並行書き込み時の
+      // 「先に片方がrename済みで2件目のrenameがENOENT」の原因になる）
+      const tmpPath = `${this.configPath}.${Date.now()}-${Math.random().toString(36).slice(2, 8)}.tmp`
+      await fsp.writeFile(tmpPath, this.encodeConfig(merged))
+      try {
+        await fsp.rename(tmpPath, this.configPath)
+      } catch {
+        // rename失敗(Windowsでの一時的なロック等)は一度削除してからリトライ
+        await fsp.rm(this.configPath, { force: true })
+        await fsp.rename(tmpPath, this.configPath)
+      }
     } catch (error) {
       console.error('設定保存エラー:', error)
       throw error

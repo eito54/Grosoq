@@ -1,5 +1,5 @@
 import { ObsManager } from './obs-manager'
-import { ConfigManager } from './config-manager'
+import { ConfigManager, resolveStandingsCalibration, getCalibrationContextKey, type StandingsCalibration } from './config-manager'
 import fs from 'fs'
 import path from 'path'
 import { app, nativeImage } from 'electron'
@@ -213,7 +213,9 @@ export class ApiManager {
    * 戻り値は1〜2枚のdata URL配列（デコード失敗列はスキップ、全滅時はフルフレーム1枚）。
    */
   private cropStandingsColumns(imageUrl: string): string[] {
-    const cal = this.configManager.getConfig().standingsCalibration
+    // 現在のコンテキスト（モード×対象ゲーム）に対応するプリセットを優先して使用。
+    // 未保存なら従来のスタンドアロン校正值にフォールバックする
+    const cal = resolveStandingsCalibration(this.configManager.getConfig())
     const ranges: Array<{ startPct: number; endPct: number }> = [
       { startPct: cal.colAStartX, endPct: cal.colAEndX },
       { startPct: cal.colBStartX, endPct: cal.colBEndX }
@@ -273,8 +275,45 @@ export class ApiManager {
       return this.analyzeStandingsGroq(this.cropStandingsColumns(imageUrl))
     }
 
+    // 標準12人モード: 12人用プリセット（MK8DX / MK World 12人）が保存されていれば、
+    // リザルト全員の「名前〜点数」が映る単一領域へクロップしてから解析する。
+    // 未保存の場合はフルフレームのまま（従来動作）
+    if (config.analysisMode === 'standard12') {
+      const preset = config.standingsCalibrationPresets?.[getCalibrationContextKey(config)]
+      if (preset) {
+        return this.analyzeRaceGroq(this.cropSingleRegion(imageUrl, preset), useTotalScore)
+      }
+    }
+
     // Always use Groq for now as other providers are removed/hidden
     return this.analyzeRaceGroq(imageUrl, useTotalScore)
+  }
+
+  /**
+   * 標準12人モード用: 単一領域（リザルトの全員の名前〜点数が映る範囲）へクロップする。
+   * 列A(colAStartX〜colAEndX)を1つのX範囲として扱い、startY〜endYで縦範囲を切る。
+   * 失敗時はフルフレームを返す。
+   */
+  private cropSingleRegion(imageUrl: string, cal: StandingsCalibration): string {
+    try {
+      const base64Data = imageUrl.includes('base64,') ? imageUrl.split('base64,')[1] : imageUrl
+      const image = nativeImage.createFromBuffer(Buffer.from(base64Data, 'base64'))
+      if (image.isEmpty()) {
+        console.error('[ApiManager] cropSingleRegion: decode failed, using full frame')
+        return imageUrl
+      }
+      const { width, height } = image.getSize()
+      const x = Math.max(0, Math.min(width - 1, Math.floor((width * cal.colAStartX) / 100)))
+      const w = Math.max(1, Math.min(width - x, Math.floor((width * (cal.colAEndX - cal.colAStartX)) / 100)))
+      const y = Math.max(0, Math.min(height - 1, Math.floor((height * cal.startY) / 100)))
+      const h = Math.max(1, Math.min(height - y, Math.floor((height * (cal.endY - cal.startY)) / 100)))
+      const cropped = image.crop({ x, y, width: w, height: h })
+      if (cropped.isEmpty()) return imageUrl
+      return `data:image/jpeg;base64,${cropped.toJPEG(90).toString('base64')}`
+    } catch (error) {
+      console.error('[ApiManager] cropSingleRegion failed:', error)
+      return imageUrl
+    }
   }
 
   /**
